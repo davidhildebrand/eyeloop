@@ -10,7 +10,7 @@ step_list_source = np.zeros(angular_iter, dtype=np.int8)
 diagonal_size = 2**10
 
 step_size = np.deg2rad(360 / angular_iter)
-limit = np.arange(250)  # max size of shape; normalize qqqq
+limit = np.arange(250)  # max size of shape; normalize 
 cos_sin_steps = np.array([(np.cos(i * step_size), np.sin(i * step_size)) for i in angular_range], dtype=np.float64)
 
 kernel = np.ones((1, 1), np.uint8)
