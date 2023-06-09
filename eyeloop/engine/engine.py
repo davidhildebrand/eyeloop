@@ -84,10 +84,10 @@ class Engine:
 
         self.iterate(image)
 
-        if config.arguments.blinkcalibration != "":
-            config.blink = np.load(config.arguments.blinkcalibration)
-            self.blink_sampled = lambda _:None
-            logger.info("(success) blink calibration loaded")
+        # if config.arguments.blinkcalibration != "":
+        #     config.blink = np.load(config.arguments.blinkcalibration)
+        #     self.blink_sampled = lambda _:None
+        #     logger.info("(success) blink calibration loaded")
 
         if config.arguments.clear == False or config.arguments.params != "":
 
@@ -137,16 +137,16 @@ class Engine:
         logger.info(f"loaded parameters:\n{param_dict}")
 
 
-    def blink_sampled(self, t:int = 1):
+    # def blink_sampled(self, t:int = 1):
 
-        if t == 1:
-            if config.blink_i% 20 == 0:
-                print(f"calibrating blink detector {round(config.blink_i/config.blink.shape[0]*100,1)}%")
-        else:
-            logger.info("(success) blink detection calibrated")
-            path = f"{config.file_manager.new_folderpath}/blinkcalibration_{self.dataout['time']}.npy"
-            np.save(path, config.blink)
-            print("blink calibration file saved")
+    #     if t == 1:
+    #         if config.blink_i% 20 == 0:
+    #             print(f"calibrating blink detector {round(config.blink_i/config.blink.shape[0]*100,1)}%")
+    #     else:
+    #         logger.info("(success) blink detection calibrated")
+    #         path = f"{config.file_manager.new_folderpath}/blinkcalibration_{self.dataout['time']}.npy"
+    #         np.save(path, config.blink)
+    #         print("blink calibration file saved")
 
     def track(self, img) -> None:
         """
@@ -158,32 +158,33 @@ class Engine:
         Finally, data is logged and extractors are run.
         """
         mean_img = np.mean(img)
-        try:
+        # try:
 
-            config.blink[config.blink_i] = mean_img
-            config.blink_i += 1
-            self.blink_sampled(1)
+        #     config.blink[config.blink_i] = mean_img
+        #     config.blink_i += 1
+        #     self.blink_sampled(1)
 
-        except IndexError:
-            self.blink_sampled(0)
-            self.blink_sampled = lambda _:None
-            config.blink_i = 0
+        # except IndexError:
+        #     self.blink_sampled(0)
+        #     self.blink_sampled = lambda _:None
+        #     config.blink_i = 0
 
         self.dataout = {
             "time": time.time()
         }
 
-        if np.abs(mean_img - np.mean(config.blink[np.nonzero(config.blink)])) > 10:
+        # if np.abs(mean_img - np.mean(config.blink[np.nonzero(config.blink)])) > 10:
 
-            self.dataout["blink"] = 1
-            self.pupil_processor.fit_model.params = None
-            logger.info("Blink detected.")
-        else:
+        #     self.dataout["blink"] = 1
+        #     self.pupil_processor.fit_model.params = None
+        #     logger.info("Blink detected.")
+        # else:
 
-            self.pupil_processor.track(img)
+        #     self.pupil_processor.track(img)
 
-            self.cr_processor_1.track(img)
+        #     self.cr_processor_1.track(img)
         #self.cr_processor_2.track(img.copy(), img)
+        self.pupil_processor.track(img)
 
 
         try:

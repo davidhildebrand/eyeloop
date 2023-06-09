@@ -44,11 +44,11 @@ class EyeLoop:
         #else:
         #    self.test_blink()
 
-    def test_blink(self):
-        from eyeloop.guis.blink_test import GUI
-        config.graphical_user_interface = GUI()
-        config.engine = Engine(self)
-        self.run_importer()
+    # def test_blink(self):
+    #     from eyeloop.guis.blink_test import GUI
+    #     config.graphical_user_interface = GUI()
+    #     config.engine = Engine(self)
+    #     self.run_importer()
 
     def run(self):
         #try:

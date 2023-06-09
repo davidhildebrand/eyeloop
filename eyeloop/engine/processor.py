@@ -33,7 +33,9 @@ class Shape():
         self.type_entry = None
         self.track = lambda x:None
 
+        self.convex_hull = False
 
+        self.blinking = 0
 
         if type == 1:
             self.artefact = lambda _:None
@@ -76,8 +78,35 @@ class Shape():
     def pupil_thresh(self):
         # Pupil
 
-        self.source[:] = cv2.threshold(cv2.GaussianBlur(cv2.erode(self.source, kernel, iterations = 1), self.blur, 0), self.binarythreshold, 255, cv2.THRESH_BINARY_INV)[1]
+        #self.source[:] = cv2.threshold(cv2.GaussianBlur(cv2.erode(self.source, kernel, iterations = 1), self.blur, 0), self.binarythreshold, 255, cv2.THRESH_BINARY_INV)[1]
         #self.source[:] = cv2.GaussianBlur(self.source, self.blur, 0)
+
+        blur_tuple = [config.engine.subject_parameters["p_blur"],config.engine.subject_parameters["p_blur"]]
+        self.source[:] = cv2.threshold(cv2.GaussianBlur(cv2.erode(self.source, kernel, iterations = 1), blur_tuple, 0), config.engine.subject_parameters["p_binarythreshold"], 255, cv2.THRESH_BINARY_INV)[1]
+
+        contour,hier = cv2.findContours(self.source,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
+        if self.convex_hull == True:
+            if len(contour) > 0:
+            
+                contour = max(contour, key = cv2.contourArea)
+        
+                hull_contour= cv2.convexHull(contour)
+                
+                self.source[:] = 0
+                if cv2.contourArea(hull_contour) > config.engine.subject_parameters["min_radius"] ** 2 * 3.14159 / 2:
+                    self.blinking = 0
+                    cv2.drawContours(self.source, [hull_contour],0,255,-1)
+
+                    M = cv2.moments(hull_contour)
+                    if M['m00'] != 0:
+                        cx = M['m10']/M['m00']
+                        cy = M['m01']/M['m00']
+                        self.center = (cx,cy)
+                        
+                else:
+                    self.blinking = 1
+            else:
+                self.blinking = 1
 
     def cr_thresh(self):
         # CR
@@ -157,16 +186,25 @@ class Shape():
     def fit(self):
         try:
 
-            r = self.walkout()
+            # r = self.walkout()
 
 
-            self.center = self.fit_model.fit(r)
+            # self.center = self.fit_model.fit(r)
 
-            params = self.fit_model.params
+            # params = self.fit_model.params
 
-            #self.artefact(params)
+            # #self.artefact(params)
 
-            config.engine.dataout[self.type_entry] = self.fit_model.params#params
+            # config.engine.dataout[self.type_entry] = self.fit_model.params#params
+            if self.blinking == 0:
+                r = self.walkout()
+                self.center = self.fit_model.fit(r)
+                params = self.fit_model.params
+                config.engine.dataout[self.type_entry] = self.fit_model.params#params
+            else:
+                print('blinking!')
+                config.engine.dataout[self.type_entry] = 'blink'
+                
         except IndexError:
 
             logger.info(f"fit index error")
