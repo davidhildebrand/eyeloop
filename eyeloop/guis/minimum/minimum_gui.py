@@ -198,7 +198,7 @@ class GUI:
         button3 = Button(resetax3, 'Start!', color=axcolor, hovercolor='0.975')
         def reset3(event):
             print("Initiating tracking..")
-            
+            self.pupil_processor.convex_hull = True
             plt.close(self.plot.fig)
             delattr(self, 'plot')
             plt.close('all')
