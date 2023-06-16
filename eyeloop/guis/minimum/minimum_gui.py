@@ -71,8 +71,8 @@ class GUI:
 
         self.pupil_processor = config.engine.pupil_processor
 
-        self.cr_index = 0
-        self.current_cr_processor = config.engine.cr_processor_1  # primary corneal reflection
+        #self.cr_index = 0
+        #self.current_cr_processor = config.engine.cr_processor_1  # primary corneal reflection
         #self.cr_processor_1 = config.engine.cr_processor_1
         #self.cr_processor_2 = config.engine.cr_processor_2
 
@@ -82,7 +82,7 @@ class GUI:
 
         self.bin_stock = np.zeros((self.binary_height, self.binary_width))
         self.bin_P = self.bin_stock.copy()
-        self.bin_CR = self.bin_stock.copy()
+        #self.bin_CR = self.bin_stock.copy()
 
         self.src_txt = np.zeros((20, width, 3))
         self.prev_txt = self.src_txt.copy()
@@ -92,9 +92,9 @@ class GUI:
 
         self.bin_stock_txt = np.zeros((20, self.binary_width))
         self.bin_stock_txt_selected = self.bin_stock_txt.copy()
-        self.crstock_txt = self.bin_stock_txt.copy()
-        self.crstock_txt[0:1, 0:self.binary_width] = 1
-        self.crstock_txt_selected = self.crstock_txt.copy()
+        # self.crstock_txt = self.bin_stock_txt.copy()
+        # self.crstock_txt[0:1, 0:self.binary_width] = 1
+        # self.crstock_txt_selected = self.crstock_txt.copy()
 
         cv2.imshow("CONFIGURATION", np.hstack((self.bin_stock, self.bin_stock)))
         cv2.imshow("BINARY", np.vstack((self.bin_stock, self.bin_stock)))
@@ -347,22 +347,24 @@ class GUI:
         #self.cr1_(source_rgb)
         #self.cr2_(source_rgb)
 
-        self.bin_CR = self.bin_stock.copy()
+        # self.bin_CR = self.bin_stock.copy()
 
-        try:
-            cr_area = self.current_cr_processor.source
-            offset_y = int((self.binary_height - cr_area.shape[0]) / 2)
-            offset_x = int((self.binary_width - cr_area.shape[1]) / 2)
-            self.bin_CR[offset_y:min(offset_y + cr_area.shape[0], self.binary_height),
-            offset_x:min(offset_x + cr_area.shape[1], self.binary_width)] = cr_area
-        except:
-            pass
+        # try:
+        #     cr_area = self.current_cr_processor.source
+        #     offset_y = int((self.binary_height - cr_area.shape[0]) / 2)
+        #     offset_x = int((self.binary_width - cr_area.shape[1]) / 2)
+        #     self.bin_CR[offset_y:min(offset_y + cr_area.shape[0], self.binary_height),
+        #     offset_x:min(offset_x + cr_area.shape[1], self.binary_width)] = cr_area
+        # except:
+        #     pass
 
-        self.crstock_txt = np.zeros((20, self.binary_width))
-        cv2.putText(self.crstock_txt, 'CR | thresh W/S {} | blur E/D {}'.format(self.current_cr_processor.binarythreshold,self.current_cr_processor.blur[0]), (10, 15), font, .7, 1, 0, cv2.LINE_4)
-        self.bin_CR[0:20, 0:self.binary_width] = self.crstock_txt
+        # self.crstock_txt = np.zeros((20, self.binary_width))
+        # cv2.putText(self.crstock_txt, 'CR | thresh W/S {} | blur E/D {}'.format(self.current_cr_processor.binarythreshold,self.current_cr_processor.blur[0]), (10, 15), font, .7, 1, 0, cv2.LINE_4)
+        # self.bin_CR[0:20, 0:self.binary_width] = self.crstock_txt
 
-        cv2.imshow("BINARY", np.vstack((self.bin_P, self.bin_CR)))
+        #cv2.imshow("BINARY", np.vstack((self.bin_P, self.bin_CR)))
+        cv2.imshow("BINARY", self.bin_P)
+        
         cv2.imshow("CONFIGURATION", source_rgb)
 
         # Update the GUI with data, if available

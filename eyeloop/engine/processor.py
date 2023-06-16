@@ -59,20 +59,21 @@ class Shape():
 
             self.track = self.track_
         else:
-            self.walkout = self.cr_walkout
-            self.type_entry = f"cr_{n}"
-            self.center_adj = lambda:None
-            self.cond = lambda r,_:r
-            #self.clip = self.clip_
-            self.expand = 1.2
-            self.artefact = lambda _:None
-            #self.artefact = self.artefact_
-            self.fit_model = Center_class()#Circle(self)
+            pass
+            # self.walkout = self.cr_walkout
+            # self.type_entry = f"cr_{n}"
+            # self.center_adj = lambda:None
+            # self.cond = lambda r,_:r
+            # #self.clip = self.clip_
+            # self.expand = 1.2
+            # self.artefact = lambda _:None
+            # #self.artefact = self.artefact_
+            # self.fit_model = Center_class()#Circle(self)
 
-            #self.min_radius = 1
-            #self.max_radius = 20 #change according to video size or argument
+            # #self.min_radius = 1
+            # #self.max_radius = 20 #change according to video size or argument
 
-            self.thresh = self.cr_thresh
+            # self.thresh = self.cr_thresh
 
         #self.threshold = len(crop_stock) * self.min_radius *1.05
 
@@ -109,11 +110,11 @@ class Shape():
             else:
                 self.blinking = 1
 
-    def cr_thresh(self):
-        # CR
+    # def cr_thresh(self):
+    #     # CR
 
-        _, self.source[:] = cv2.threshold(cv2.GaussianBlur(self.source, self.blur, 0), self.binarythreshold, 255, cv2.THRESH_BINARY)
-        #self.source[:] =
+    #     _, self.source[:] = cv2.threshold(cv2.GaussianBlur(self.source, self.blur, 0), self.binarythreshold, 255, cv2.THRESH_BINARY)
+    #     #self.source[:] =
 
     def reset(self, center):
 
@@ -392,77 +393,77 @@ class Shape():
 
         return self.cond(r, crop_list)#rx[cond_], ry[cond_]#rx, ry
 
-    def cr_walkout(self):
+    # def cr_walkout(self):
 
 
-        #diag_matrix = main_diagonal[:canvas_.shape[0], :canvas_.shape[1]]
+    #     #diag_matrix = main_diagonal[:canvas_.shape[0], :canvas_.shape[1]]
 
-        try:
-            center = np.round(self.center).astype(int)
-        except:
-            return
+    #     try:
+    #         center = np.round(self.center).astype(int)
+    #     except:
+    #         return
 
-        #canvas = np.array(self.source, dtype=int)#.copy()
+    #     #canvas = np.array(self.source, dtype=int)#.copy()
 
-        r = rr_2d_cr.copy()
-
-
-        crop_list = crop_stock_cr.copy()
-        #rx = np.zeros(4)
-        #ry = np.zeros(4)
-
-        canvas_ = self.source[center[1]:, center[0]:]
-
-        crop_list[0] = np.argmax(canvas_[:, 0] == 0) #- 1
-        #crop_ = np.argmax(canvas_[:, 0] == 0) #- 1
-
-        #ry[0], rx[0] = crop_ + center[1], center[0]
+    #     r = rr_2d_cr.copy()
 
 
-        crop_list[2] = np.argmax(canvas_[0, :] == 0) #- 1
-        #crop_ = np.argmax(canvas_[0, :] == 0) #- 1
+    #     crop_list = crop_stock_cr.copy()
+    #     #rx = np.zeros(4)
+    #     #ry = np.zeros(4)
 
-    #    ry[2], rx[2] = center[1], crop_ + center[0]
+    #     canvas_ = self.source[center[1]:, center[0]:]
 
+    #     crop_list[0] = np.argmax(canvas_[:, 0] == 0) #- 1
+    #     #crop_ = np.argmax(canvas_[:, 0] == 0) #- 1
 
-        canvas = np.flip(self.source) # flip once
-
-        crop_list[3] = -np.argmax(canvas[-center[1], -center[0]:] == 0)
-        #crop_ = np.argmax(canvas[-center[1], -center[0]:] == 0)# - 1
-
-        #ry[3], rx[3] = center[1], -crop_ + center[0]
+    #     #ry[0], rx[0] = crop_ + center[1], center[0]
 
 
-        crop_list[1]= -np.argmax(canvas[-center[1]:, -center[0]] == 0)
-    #    crop_ = np.argmax(canvas[-center[1]:, -center[0]] == 0)
+    #     crop_list[2] = np.argmax(canvas_[0, :] == 0) #- 1
+    #     #crop_ = np.argmax(canvas_[0, :] == 0) #- 1
 
-        #ry[1], rx[1] = -crop_ + center[1], center[0]
-        #print()
-
-        #print(r, crop_list)
-        r[:,:] = center
-
-        r[:2, 1] += crop_list[:2]
-        r[2:, 0] += crop_list[2:]
+    # #    ry[2], rx[2] = center[1], crop_ + center[0]
 
 
+    #     canvas = np.flip(self.source) # flip once
 
-        #print(r, rx, ry)
+    #     crop_list[3] = -np.argmax(canvas[-center[1], -center[0]:] == 0)
+    #     #crop_ = np.argmax(canvas[-center[1], -center[0]:] == 0)# - 1
 
-        # try:
-        #
-        #    canvas_rgb = cv2.cvtColor(self.source, cv2.COLOR_GRAY2RGB)
-        #
-        #   # canvas_rgb[cy,cx] = [0,0,255]
-        #    #canvas_rgb[ry.astype("int"), rx.astype("int")] = [0,255,0]
-        #    canvas_rgb[r[:,1].astype("int"), r[:,0].astype("int")] = [0,0,255]
-        #    #canvas_rgb[center[1], center[0]] = [255,0,0]
-        #    #rx1,ry1 = self.cond(rx, ry, crop_list)
-        #   # canvas_rgb[ry1.astype("int"), rx1.astype("int")] = [0,255,0]
-        #    cv2.imshow("JJJ", canvas_rgb)
-        #    cv2.waitKey(5)
-        # except Exception as e:
-        #    print(e)
+    #     #ry[3], rx[3] = center[1], -crop_ + center[0]
 
 
-        return r#rx[cond_], ry[cond_]#rx, ry
+    #     crop_list[1]= -np.argmax(canvas[-center[1]:, -center[0]] == 0)
+    # #    crop_ = np.argmax(canvas[-center[1]:, -center[0]] == 0)
+
+    #     #ry[1], rx[1] = -crop_ + center[1], center[0]
+    #     #print()
+
+    #     #print(r, crop_list)
+    #     r[:,:] = center
+
+    #     r[:2, 1] += crop_list[:2]
+    #     r[2:, 0] += crop_list[2:]
+
+
+
+    #     #print(r, rx, ry)
+
+    #     # try:
+    #     #
+    #     #    canvas_rgb = cv2.cvtColor(self.source, cv2.COLOR_GRAY2RGB)
+    #     #
+    #     #   # canvas_rgb[cy,cx] = [0,0,255]
+    #     #    #canvas_rgb[ry.astype("int"), rx.astype("int")] = [0,255,0]
+    #     #    canvas_rgb[r[:,1].astype("int"), r[:,0].astype("int")] = [0,0,255]
+    #     #    #canvas_rgb[center[1], center[0]] = [255,0,0]
+    #     #    #rx1,ry1 = self.cond(rx, ry, crop_list)
+    #     #   # canvas_rgb[ry1.astype("int"), rx1.astype("int")] = [0,255,0]
+    #     #    cv2.imshow("JJJ", canvas_rgb)
+    #     #    cv2.waitKey(5)
+    #     # except Exception as e:
+    #     #    print(e)
+
+
+    #     return r#rx[cond_], ry[cond_]#rx, ry
