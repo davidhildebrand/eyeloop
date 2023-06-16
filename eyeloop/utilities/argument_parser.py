@@ -29,14 +29,22 @@ class Arguments:
         parser.add_argument("-v", "--video", default="0", type=str,
                             help="Input a video sequence for offline processing.")
 
-        parser.add_argument("-o", "--output_dir", default=str(PROJECT_DIR.joinpath("data").absolute()), type=str,
-                            help="Specify output destination.")
+        #parser.add_argument("-o", "--output_dir", default=str(PROJECT_DIR.joinpath("data").absolute()), type=str,
+        #                    help="Specify output destination.")
+        
+        parser.add_argument("-o", "--output_dir", default='C:\FreiwaldSync\MarmoScope\Stimulus\Data\Eyeloop', type=str,
+                            help="Specify output destination for data, logs, parameters.")
+
         parser.add_argument("-c", "--config", default="0", type=str, help="Input a .pupt config file (preset).")
-        parser.add_argument("-i", "--importer", default="cv", type=str,
-                            help="Set import route of stream (cv, vimba, ...)")
+        #parser.add_argument("-i", "--importer", default="cv", type=str,
+        #                    help="Set import route of stream (cv, vimba, ...)")
+        parser.add_argument("-i", "--importer", default="pointgrey", type=str,
+                            help="Set import route of stream (cv, vimba, pointgrey)")
         parser.add_argument("-sc", "--scale", default=1, type=float, help="Scale the stream (default: 1; 0-1)")
-        parser.add_argument("-m", "--model", default="ellipsoid", type=str,
-                            help="Set pupil model type (circular; ellipsoid = default).")
+        #parser.add_argument("-m", "--model", default="ellipsoid", type=str,
+        #                    help="Set pupil model type (circular; ellipsoid = default).")
+        parser.add_argument("-m", "--model", default="circular", type=str,
+                            help="Set pupil model type (ellipsoid; circular = default).")
         parser.add_argument("-ma", "--markers", default=0, type=int,
                             help="Enable/disable artifact removing markers (0: disable/default; 1: enable)")
         parser.add_argument("-tr", "--tracking", default=1, type=int,
@@ -45,8 +53,10 @@ class Arguments:
         parser.add_argument("-ex", "--extractors", default="", type=str,
                             help="Set file-path of extractor Python file. p = start file prompt.")
 
-        parser.add_argument("-imgf", "--img_format", default="frame_$.jpg", type=str,
-                            help="Set img format for import (default: frame_$.jpg where $ = 1, 2,...)")
+        #parser.add_argument("-imgf", "--img_format", default="frame_$.jpg", type=str,
+        #                    help="Set img format for import (default: frame_$.jpg where $ = 1, 2,...)")
+        parser.add_argument("-imgf", "--img_format", default="frame_$.png", type=str,
+                            help="Set img format for import (default: frame_$.png where $ = 1, 2,...)")
 
         parser.add_argument("-sv", "--save", default=1, type=int,
                             help="Save video feed or not (yes/no, 1/0; default = 1)")
@@ -54,14 +64,16 @@ class Arguments:
         parser.add_argument("-rt", "--rotation", default=0, type=int,
                             help="Enable online rotation (yes/no, 1/0; default = 0)")
 
-        parser.add_argument("-fps", "--framerate", default=1, type=float,
-                            help="How often to update preview window  (default = 1/second)")
+        #parser.add_argument("-fps", "--framerate", default=1, type=float,
+        #                    help="How often to update preview window  (default = 1/second)")
+        parser.add_argument("-fps", "--framerate", default=2, type=float,
+                            help="How often to update preview window  (default = 2/second)")
 
-        parser.add_argument("-cl", "--clear", default=0, type=float,
-                            help="Clear parameters (yes/no, 1/0) - default = 0")
+        #parser.add_argument("-cl", "--clear", default=0, type=float,
+        #                    help="Clear parameters (yes/no, 1/0) - default = 0")
 
-        parser.add_argument("-p", "--params", default="", type=str,
-                            help="Load pupil/cr parameter file (.npy)")
+        #parser.add_argument("-p", "--params", default="", type=str,
+        #                    help="Load pupil/cr parameter file (.npy)")
 
         # parser.add_argument("-b", "--blink", default="", type=str,
         #                     help="Load blink calibration file (.npy)")
@@ -86,8 +98,8 @@ class Arguments:
         self.save = parsed_args.save
         self.rotation = parsed_args.rotation
         self.fps = parsed_args.framerate
-        self.clear = parsed_args.clear
-        self.params = parsed_args.params
+        #self.clear = parsed_args.clear
+        #self.params = parsed_args.params
         #self.blinkcalibration = parsed_args.blink
         #self.blink = parsed_args.blink
 

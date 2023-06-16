@@ -47,11 +47,12 @@ class Shape():
             else:
                 self.fit_model = Ellipse(self)
 
-            self.min_radius = 2
-            self.max_radius = 100 #change according to video size or argument
+            #self.min_radius = 2
+            #self.max_radius = 100 #change according to video size or argument
+            self.radius_tolerance_contour = 20
             self.cond = self.cond_
             #self.clip = lambda x:None
-            self.clip = self.clip_
+            #self.clip = self.clip_
             self.center_adj = self.center_adj_
 
             self.walkout = self.pupil_walkout
@@ -62,18 +63,18 @@ class Shape():
             self.type_entry = f"cr_{n}"
             self.center_adj = lambda:None
             self.cond = lambda r,_:r
-            self.clip = self.clip_
+            #self.clip = self.clip_
             self.expand = 1.2
             self.artefact = lambda _:None
             #self.artefact = self.artefact_
             self.fit_model = Center_class()#Circle(self)
 
-            self.min_radius = 1
-            self.max_radius = 20 #change according to video size or argument
+            #self.min_radius = 1
+            #self.max_radius = 20 #change according to video size or argument
 
             self.thresh = self.cr_thresh
 
-        self.threshold = len(crop_stock) * self.min_radius *1.05
+        #self.threshold = len(crop_stock) * self.min_radius *1.05
 
     def pupil_thresh(self):
         # Pupil
@@ -147,7 +148,8 @@ class Shape():
 
 
         #adjust settings:
-        circles = cv2.HoughCircles(self.raw, cv2.HOUGH_GRADIENT, 1, 10, param1=200, param2=100, minRadius=self.min_radius, maxRadius=self.max_radius)
+        #circles = cv2.HoughCircles(self.raw, cv2.HOUGH_GRADIENT, 1, 10, param1=200, param2=100, minRadius=self.min_radius, maxRadius=self.max_radius)
+        circles = cv2.HoughCircles(self.raw, cv2.HOUGH_GRADIENT, 1, 10, param1=200, param2=100, minRadius=config.engine.subject_parameters["min_radius"], maxRadius=config.engine.subject_parameters["max_radius"])
 
         if circles is None:
             return
@@ -158,8 +160,9 @@ class Shape():
             for circle in circles[0, :]:
                 #print(circle[:2])
 
-                score = self.distance(circle[:2], self.center) + np.mean(self.raw[int(circle[1])-self.min_radius:int(circle[1])+self.min_radius, int(circle[0]-self.min_radius):int(circle[0]+self.min_radius)])
-
+                #score = self.distance(circle[:2], self.center) + np.mean(self.raw[int(circle[1])-self.min_radius:int(circle[1])+self.min_radius, int(circle[0]-self.min_radius):int(circle[0]+self.min_radius)])
+                score = self.distance(circle[:2], self.center) + np.mean(self.raw[int(circle[1])-config.engine.subject_parameters["min_radius"]:int(circle[1])+config.engine.subject_parameters["min_radius"], int(circle[0]-config.engine.subject_parameters["min_radius"]):int(circle[0]+config.engine.subject_parameters["min_radius"])])
+                print(score)
                 self.raw[int(circle[1]), int(circle[0])] = 100
                 cv2.imshow("kk", self.raw)
                 cv2.waitKey(0)
@@ -216,26 +219,47 @@ class Shape():
 
 
     def cond_(self, r, crop_list):
-
+        center = np.mean(r,  axis = 0,dtype=np.float64)
+        dists =  np.linalg.norm(center - r, axis = 1)
+ 
+        r_below_center = r[:,1] > center[1] + 3 
+        r_rightmost = r[:,0] == np.max(r[:,0]) 
+        r_leftmost = r[:,0] == np.min(r[:,0]) 
 
         #t=time.time()
         #print(np.mean([rx,ry],axis=1, dtype=np.float64).shape)
     #    dists =  np.linalg.norm(np.mean([rx,ry],axis=1, dtype=np.float64)[:,np.newaxis] - np.array([rx, ry], dtype = np.float64), axis = 0)
-        dists =  np.linalg.norm(np.mean(r,  axis = 0,dtype=np.float64) - r, axis = 1)
+        #dists =  np.linalg.norm(np.mean(r,  axis = 0,dtype=np.float64) - r, axis = 1)
 
         #print(time.time() - t)
         #
         mean_ = np.mean(dists)
         std_ = np.std(dists)
         #t=time.time()
-        lower, upper = mean_ - std_, mean_ + std_ * .8
+        #lower, upper = mean_ - std_, mean_ + std_ * .8
+        lower = mean_ + std_ * config.engine.subject_parameters["lower_lim_std"]
+        upper = mean_ + std_ * config.engine.subject_parameters["upper_lim_std"]
+
         cond_ = np.logical_and(np.greater_equal(dists, lower), np.less(dists, upper))
         #print(time.time() - t)
     #    print(cond_, dists)
-        return r[cond_]
+        #return r[cond_]
 
-    def clip_(self, crop_list):
-        np.clip(crop_list, self.min_radius, self.max_radius, out = crop_list)
+        if np.sum(cond_) < 3:
+            print('Not enough points after discarding outliers. + \
+                    Increase difference between upper_lim_std and lower_lim_std.')
+
+        r_pass = r[np.any((cond_ , r_below_center, r_rightmost, r_leftmost),axis=0)]
+
+        # Add some additional copies of points that we know should be included in the circle:
+        np.append(r_pass,
+                    [r[ r_rightmost],r[ r_rightmost],r[ r_rightmost],r[ r_rightmost],r[ r_rightmost],
+                     r[ r_leftmost],r[ r_leftmost],r[ r_leftmost],r[ r_leftmost],r[ r_leftmost]])
+        return r_pass
+
+
+    #def clip_(self, crop_list):
+    #    np.clip(crop_list, self.min_radius, self.max_radius, out = crop_list)
 
     def pupil_walkout(self):
 
@@ -274,21 +298,34 @@ class Shape():
 
 
         crop_list=np.array([
-        np.argmax(canvas_[:, 0][self.min_radius:self.max_radius] == 0), np.argmax(canvas_[0, :][self.min_radius:self.max_radius] == 0), np.argmax(canvas_[main_diagonal[:canv_shape0, :canv_shape1]][self.min_radius:self.max_radius] == 0),
-        np.argmax(crop_canvas[main_diagonal[:crop_canv_shape0, :crop_canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas2[main_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][self.min_radius:self.max_radius] == 0),
-        np.argmax(crop_canvas3[main_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(canvas2[-center[1], -center[0]:][self.min_radius:self.max_radius] == 0), np.argmax(canvas2[-center[1]:, -center[0]][self.min_radius:self.max_radius] == 0),
-        np.argmax(canvas_[ half_diagonal[:canv_shape0, :canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas[half_diagonal[:crop_canv_shape0, :crop_canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas2[half_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][self.min_radius:self.max_radius] == 0),
-        np.argmax(crop_canvas3[half_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(canvas_[invhalf_diagonal[:canv_shape0, :canv_shape1]][self.min_radius:self.max_radius] == 0),
-        np.argmax(crop_canvas[invhalf_diagonal[:crop_canv_shape0, :crop_canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas2[invhalf_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][self.min_radius:self.max_radius] == 0),
-        np.argmax(crop_canvas3[invhalf_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(canvas_[fourth_diagonal[:canv_shape0, :canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas3[fourth_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][self.min_radius:self.max_radius] == 0),
-        np.argmax(crop_canvas[fourth_diagonal[:crop_canv_shape0, :crop_canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas2[fourth_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(canvas_[invfourth_diagonal[:canv_shape0, :canv_shape1]][self.min_radius:self.max_radius] == 0),
-        np.argmax(crop_canvas2[invfourth_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas[invfourth_diagonal[:crop_canv_shape0, :crop_canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas3[invfourth_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][self.min_radius:self.max_radius] == 0),
-        np.argmax(canvas_[third_diagonal[:canv_shape0, :canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas2[third_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas[third_diagonal[:crop_canv_shape0, :crop_canv_shape1]][self.min_radius:self.max_radius] == 0),
-        np.argmax(crop_canvas3[third_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(canvas_[invthird_diagonal[:canv_shape0, :canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas2[invthird_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][self.min_radius:self.max_radius] == 0),
-        np.argmax(crop_canvas[invthird_diagonal[:crop_canv_shape0, :crop_canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas3[invthird_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][self.min_radius:self.max_radius] == 0)
-        ], dtype=int) + self.min_radius
+        np.argmax(canvas_[:, 0][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(canvas_[0, :][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(canvas_[main_diagonal[:canv_shape0, :canv_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0),
+        np.argmax(crop_canvas[main_diagonal[:crop_canv_shape0, :crop_canv_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(crop_canvas2[main_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0),
+        np.argmax(crop_canvas3[main_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(canvas2[-center[1], -center[0]:][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(canvas2[-center[1]:, -center[0]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0),
+        np.argmax(canvas_[ half_diagonal[:canv_shape0, :canv_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(crop_canvas[half_diagonal[:crop_canv_shape0, :crop_canv_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(crop_canvas2[half_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0),
+        np.argmax(crop_canvas3[half_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(canvas_[invhalf_diagonal[:canv_shape0, :canv_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0),
+        np.argmax(crop_canvas[invhalf_diagonal[:crop_canv_shape0, :crop_canv_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(crop_canvas2[invhalf_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0),
+        np.argmax(crop_canvas3[invhalf_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(canvas_[fourth_diagonal[:canv_shape0, :canv_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(crop_canvas3[fourth_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0),
+        np.argmax(crop_canvas[fourth_diagonal[:crop_canv_shape0, :crop_canv_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(crop_canvas2[fourth_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(canvas_[invfourth_diagonal[:canv_shape0, :canv_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0),
+        np.argmax(crop_canvas2[invfourth_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(crop_canvas[invfourth_diagonal[:crop_canv_shape0, :crop_canv_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(crop_canvas3[invfourth_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0),
+        np.argmax(canvas_[third_diagonal[:canv_shape0, :canv_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(crop_canvas2[third_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(crop_canvas[third_diagonal[:crop_canv_shape0, :crop_canv_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0),
+        np.argmax(crop_canvas3[third_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(canvas_[invthird_diagonal[:canv_shape0, :canv_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(crop_canvas2[invthird_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0),
+        np.argmax(crop_canvas[invthird_diagonal[:crop_canv_shape0, :crop_canv_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0), np.argmax(crop_canvas3[invthird_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][config.engine.subject_parameters["min_radius"]:config.engine.subject_parameters["max_radius"]] == 0)
+        ], dtype=int) + config.engine.subject_parameters["min_radius"]
+        # np.argmax(canvas_[:, 0][self.min_radius:self.max_radius] == 0), np.argmax(canvas_[0, :][self.min_radius:self.max_radius] == 0), np.argmax(canvas_[main_diagonal[:canv_shape0, :canv_shape1]][self.min_radius:self.max_radius] == 0),
+        # np.argmax(crop_canvas[main_diagonal[:crop_canv_shape0, :crop_canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas2[main_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][self.min_radius:self.max_radius] == 0),
+        # np.argmax(crop_canvas3[main_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(canvas2[-center[1], -center[0]:][self.min_radius:self.max_radius] == 0), np.argmax(canvas2[-center[1]:, -center[0]][self.min_radius:self.max_radius] == 0),
+        # np.argmax(canvas_[ half_diagonal[:canv_shape0, :canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas[half_diagonal[:crop_canv_shape0, :crop_canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas2[half_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][self.min_radius:self.max_radius] == 0),
+        # np.argmax(crop_canvas3[half_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(canvas_[invhalf_diagonal[:canv_shape0, :canv_shape1]][self.min_radius:self.max_radius] == 0),
+        # np.argmax(crop_canvas[invhalf_diagonal[:crop_canv_shape0, :crop_canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas2[invhalf_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][self.min_radius:self.max_radius] == 0),
+        # np.argmax(crop_canvas3[invhalf_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(canvas_[fourth_diagonal[:canv_shape0, :canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas3[fourth_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][self.min_radius:self.max_radius] == 0),
+        # np.argmax(crop_canvas[fourth_diagonal[:crop_canv_shape0, :crop_canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas2[fourth_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(canvas_[invfourth_diagonal[:canv_shape0, :canv_shape1]][self.min_radius:self.max_radius] == 0),
+        # np.argmax(crop_canvas2[invfourth_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas[invfourth_diagonal[:crop_canv_shape0, :crop_canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas3[invfourth_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][self.min_radius:self.max_radius] == 0),
+        # np.argmax(canvas_[third_diagonal[:canv_shape0, :canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas2[third_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas[third_diagonal[:crop_canv_shape0, :crop_canv_shape1]][self.min_radius:self.max_radius] == 0),
+        # np.argmax(crop_canvas3[third_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(canvas_[invthird_diagonal[:canv_shape0, :canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas2[invthird_diagonal[:crop_canv2_shape0, :crop_canv2_shape1]][self.min_radius:self.max_radius] == 0),
+        # np.argmax(crop_canvas[invthird_diagonal[:crop_canv_shape0, :crop_canv_shape1]][self.min_radius:self.max_radius] == 0), np.argmax(crop_canvas3[invthird_diagonal[:crop_canv3_shape0, :crop_canv3_shape1]][self.min_radius:self.max_radius] == 0)
+        # ], dtype=int) + self.min_radius
 
-
+        self.threshold = len(crop_stock) * config.engine.subject_parameters["min_radius"] *1.05
 
         if np.sum(crop_list) < self.threshold:
             #origin inside corneal reflection?
@@ -324,8 +361,8 @@ class Shape():
             ], dtype=int) + offset_list
 
 
-            if np.sum(crop_list) < self.threshold:
-                raise IndexError("Lost track, do reset")
+            #if np.sum(crop_list) < self.threshold:
+            #    raise IndexError("Lost track, do reset")
 
         #simple:
 

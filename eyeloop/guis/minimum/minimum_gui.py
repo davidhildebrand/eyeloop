@@ -73,8 +73,8 @@ class GUI:
 
         self.cr_index = 0
         self.current_cr_processor = config.engine.cr_processor_1  # primary corneal reflection
-        self.cr_processor_1 = config.engine.cr_processor_1
-        self.cr_processor_2 = config.engine.cr_processor_2
+        #self.cr_processor_1 = config.engine.cr_processor_1
+        #self.cr_processor_2 = config.engine.cr_processor_2
 
         self.width, self.height = width, height
         self.binary_width = max(width, 300)
@@ -344,8 +344,8 @@ class GUI:
         cv2.putText(self.bin_stock_txt, 'Pupil | thresh R/F {} | blur T/G {}'.format(config.engine.subject_parameters["p_binarythreshold"],config.engine.subject_parameters["p_blur"]), (10, 15), font, .7, 1, 0, cv2.LINE_4)
         self.bin_P[0:20, 0:self.binary_width] = self.bin_stock_txt
 
-        self.cr1_(source_rgb)
-        self.cr2_(source_rgb)
+        #self.cr1_(source_rgb)
+        #self.cr2_(source_rgb)
 
         self.bin_CR = self.bin_stock.copy()
 

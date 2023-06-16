@@ -31,9 +31,11 @@ class Engine:
 
         self.angle = 0
 
-        self.cr_processor_1 = Shape(type = 2, n = 1)
-        self.cr_processor_2 = Shape(type = 2, n = 2)
-        self.pupil_processor = Shape()
+        #self.cr_processor_1 = Shape(type = 2, n = 1)
+        #self.cr_processor_2 = Shape(type = 2, n = 2)
+        #self.pupil_processor = Shape()
+
+        self.save_images = False
 
         #   Via "gui", assign "refresh_pupil" to function "processor.refresh_source"
         #   when the pupil has been selected.
@@ -79,6 +81,18 @@ class Engine:
     def arm(self, width, height, image) -> None:
 
         self.width, self.height = width, height
+
+        for extractor in self.extractors:
+            extractor.width = self.subject_parameters["Width"]
+            extractor.height = self.subject_parameters["Height"]
+            extractor.center_x_pix = self.subject_parameters["center_x_pix"]
+            extractor.center_y_pix = self.subject_parameters["center_y_pix"]
+            extractor.voltage_gain = self.subject_parameters["voltage_gain"]
+
+        #self.cr_processor_1 = Shape(type = 2, n = 1)
+        #self.cr_processor_2 = Shape(type = 2, n = 2)
+        self.pupil_processor = Shape()
+
         config.graphical_user_interface.arm(width, height)
         self.center = (width//2, height//2)
 
@@ -89,34 +103,34 @@ class Engine:
         #     self.blink_sampled = lambda _:None
         #     logger.info("(success) blink calibration loaded")
 
-        if config.arguments.clear == False or config.arguments.params != "":
+        # if config.arguments.clear == False or config.arguments.params != "":
 
-            try:
-                if config.arguments.params != "":
-                    latest_params = max(glob.glob(config.arguments.params), key=os.path.getctime)
+        #     try:
+        #         if config.arguments.params != "":
+        #             latest_params = max(glob.glob(config.arguments.params), key=os.path.getctime)
 
-                    print(config.arguments.params + " loaded")
+        #             print(config.arguments.params + " loaded")
 
-                else:
-                    latest_params = max(glob.glob(PARAMS_DIR + "/*.npy"), key=os.path.getctime)
+        #         else:
+        #             latest_params = max(glob.glob(PARAMS_DIR + "/*.npy"), key=os.path.getctime)
 
-                params_ = np.load(latest_params, allow_pickle=True).tolist()
+        #         params_ = np.load(latest_params, allow_pickle=True).tolist()
 
-                self.pupil_processor.binarythreshold, self.pupil_processor.blur = params_["pupil"][0], params_["pupil"][1]
+        #         self.pupil_processor.binarythreshold, self.pupil_processor.blur = params_["pupil"][0], params_["pupil"][1]
 
-                self.cr_processor_1.binarythreshold, self.cr_processor_1.blur = params_["cr1"][0], params_["cr1"][1]
-                self.cr_processor_2.binarythreshold, self.cr_processor_2.blur = params_["cr2"][0], params_["cr2"][1]
+        #         self.cr_processor_1.binarythreshold, self.cr_processor_1.blur = params_["cr1"][0], params_["cr1"][1]
+        #         self.cr_processor_2.binarythreshold, self.cr_processor_2.blur = params_["cr2"][0], params_["cr2"][1]
 
-                print("(!) Parameters reloaded. Run --clear 1 to prevent this.")
+        #         print("(!) Parameters reloaded. Run --clear 1 to prevent this.")
 
 
-                param_dict = {
-                "pupil" : [self.pupil_processor.binarythreshold, self.pupil_processor.blur],
-                "cr1" : [self.cr_processor_1.binarythreshold, self.cr_processor_1.blur],
-                "cr2" : [self.cr_processor_2.binarythreshold, self.cr_processor_2.blur]
-                }
+        #         param_dict = {
+        #         "pupil" : [self.pupil_processor.binarythreshold, self.pupil_processor.blur],
+        #         "cr1" : [self.cr_processor_1.binarythreshold, self.cr_processor_1.blur],
+        #         "cr2" : [self.cr_processor_2.binarythreshold, self.cr_processor_2.blur]
+        #         }
 
-                logger.info(f"loaded parameters:\n{param_dict}")
+        #         logger.info(f"loaded parameters:\n{param_dict}")
 
                 return
 
@@ -126,15 +140,15 @@ class Engine:
 
         filtered_image = image[np.logical_and((image < 220), (image > 30))]
         self.pupil_processor.binarythreshold = np.min(filtered_image) * 1 + np.median(filtered_image) * .1#+ 50
-        self.cr_processor_1.binarythreshold = self.cr_processor_2.binarythreshold = float(np.min(filtered_image)) * .7 + 150
+        #self.cr_processor_1.binarythreshold = self.cr_processor_2.binarythreshold = float(np.min(filtered_image)) * .7 + 150
 
-        param_dict = {
-        "pupil" : [self.pupil_processor.binarythreshold, self.pupil_processor.blur],
-        "cr1" : [self.cr_processor_1.binarythreshold, self.cr_processor_1.blur],
-        "cr2" : [self.cr_processor_2.binarythreshold, self.cr_processor_2.blur]
-        }
+        # param_dict = {
+        # "pupil" : [self.pupil_processor.binarythreshold, self.pupil_processor.blur],
+        # "cr1" : [self.cr_processor_1.binarythreshold, self.cr_processor_1.blur],
+        # "cr2" : [self.cr_processor_2.binarythreshold, self.cr_processor_2.blur]
+        # }
 
-        logger.info(f"loaded parameters:\n{param_dict}")
+        # logger.info(f"loaded parameters:\n{param_dict}")
 
 
     # def blink_sampled(self, t:int = 1):
@@ -206,7 +220,22 @@ class Engine:
             try:
                 extractor.activate()
             except AttributeError:
-                logger.warning(f"Extractor {extractor} has no activate() method")
+                #logger.warning(f"Extractor {extractor} has no activate() method")
+                pass
+     
+        try:
+            config.importer.activate()
+        except AttributeError:
+            pass
+
+        logger.info(f"Starting tracking.")
+        
+        if "FullFOV" not in self.subject_parameters['Name']:
+            print(self.subject_parameters['Name'])
+            parameters_path = f"{config.file_manager.output_root}\Parameters_{self.subject_parameters['Name']}.npy"
+            np.save(parameters_path, self.subject_parameters)
+            print("Parameters saved: " + parameters_path)
+            print(self.subject_parameters)
 
     def release(self) -> None:
         """
@@ -217,15 +246,15 @@ class Engine:
         except:
             pass
 
-        param_dict = {
-        "pupil" : [self.pupil_processor.binarythreshold, self.pupil_processor.blur],
-        "cr1" : [self.cr_processor_1.binarythreshold, self.cr_processor_1.blur],
-        "cr2" : [self.cr_processor_2.binarythreshold, self.cr_processor_2.blur]
-        }
+        # param_dict = {
+        # "pupil" : [self.pupil_processor.binarythreshold, self.pupil_processor.blur],
+        # "cr1" : [self.cr_processor_1.binarythreshold, self.cr_processor_1.blur],
+        # "cr2" : [self.cr_processor_2.binarythreshold, self.cr_processor_2.blur]
+        # }
 
-        path = f"{config.file_manager.new_folderpath}/params_{self.dataout['time']}.npy"
-        np.save(path, param_dict)
-        print("Parameters saved")
+        # path = f"{config.file_manager.new_folderpath}/params_{self.dataout['time']}.npy"
+        # np.save(path, param_dict)
+        # print("Parameters saved")
 
         self.live = False
         config.graphical_user_interface.release()
@@ -235,8 +264,28 @@ class Engine:
             try:
                 extractor.release(self)
             except AttributeError:
-                logger.warning(f"Extractor {extractor} has no release() method")
+                #logger.warning(f"Extractor {extractor} has no release() method")
+                pass
             else:
                 pass
 
         config.importer.release()
+
+        if "FullFOV" in self.subject_parameters['Name']:
+            new_name = input('Enter animal name: ')
+            self.subject_parameters['Name'] = new_name
+            self.subject_parameters["center_x_pix"] = self.subject_parameters["Width"] / 2
+            self.subject_parameters["center_y_pix"] = self.subject_parameters["Height"] / 2
+        
+        parameters_path = f"{config.file_manager.output_root}\Parameters_{self.subject_parameters['Name']}.npy"
+        np.save(parameters_path, self.subject_parameters)
+        print("Parameters saved in: " + parameters_path)
+
+        logger.info(f"Ending experiment. Parameters:\n{self.subject_parameters}")
+
+        for handler in list(logger.handlers):
+            handler.close()
+            logger.removeHandler(handler) 
+
+        logging.shutdown()
+        quit()
