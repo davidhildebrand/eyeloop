@@ -132,15 +132,15 @@ class Engine:
 
         #         logger.info(f"loaded parameters:\n{param_dict}")
 
-                return
+        #         return
 
-            except:
-                pass
+        #     except:
+        #         pass
 
 
-        filtered_image = image[np.logical_and((image < 220), (image > 30))]
-        self.pupil_processor.binarythreshold = np.min(filtered_image) * 1 + np.median(filtered_image) * .1#+ 50
-        #self.cr_processor_1.binarythreshold = self.cr_processor_2.binarythreshold = float(np.min(filtered_image)) * .7 + 150
+        # filtered_image = image[np.logical_and((image < 220), (image > 30))]
+        # self.pupil_processor.binarythreshold = np.min(filtered_image) * 1 + np.median(filtered_image) * .1#+ 50
+        # self.cr_processor_1.binarythreshold = self.cr_processor_2.binarythreshold = float(np.min(filtered_image)) * .7 + 150
 
         # param_dict = {
         # "pupil" : [self.pupil_processor.binarythreshold, self.pupil_processor.blur],
