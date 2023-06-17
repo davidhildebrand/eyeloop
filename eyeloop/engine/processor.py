@@ -53,7 +53,7 @@ class Shape():
             self.cond = self.cond_
             #self.clip = lambda x:None
             #self.clip = self.clip_
-            self.center_adj = self.center_adj_
+            #self.center_adj = self.center_adj_
 
             self.walkout = self.pupil_walkout
 
@@ -87,7 +87,7 @@ class Shape():
         self.source[:] = cv2.threshold(cv2.GaussianBlur(cv2.erode(self.source, kernel, iterations = 1), blur_tuple, 0), config.engine.subject_parameters["p_binarythreshold"], 255, cv2.THRESH_BINARY_INV)[1]
 
         contour,hier = cv2.findContours(self.source,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
-        if self.convex_hull == True:
+        if self.convex_hull == True: # If using the new algorithm, new center is calculated and convex hull is used
             if len(contour) > 0:
             
                 contour = max(contour, key = cv2.contourArea)
@@ -96,19 +96,36 @@ class Shape():
                 
                 self.source[:] = 0
                 if cv2.contourArea(hull_contour) > config.engine.subject_parameters["min_radius"] ** 2 * 3.14159 / 2:
-                    self.blinking = 0
-                    cv2.drawContours(self.source, [hull_contour],0,255,-1)
 
+                    cv2.drawContours(self.source, [hull_contour],0,255,-1)
                     M = cv2.moments(hull_contour)
                     if M['m00'] != 0:
-                        cx = M['m10']/M['m00']
-                        cy = M['m01']/M['m00']
-                        self.center = (cx,cy)
-                        
+                        cx = np.round(M['m10']/M['m00']).astype(int)
+                        cy = np.round(M['m01']/M['m00']).astype(int)
+                        if cx <= config.engine.subject_parameters["min_radius"] or cx >= self.source.shape[0] - config.engine.subject_parameters["min_radius"] or cy <= config.engine.subject_parameters["min_radius"] or cy >= self.source.shape[1] - config.engine.subject_parameters["min_radius"]:
+                            self.blinking = 1
+                            print('The center of the contour is outside or close to the edge of the image. Blink, dark fur interference, or bad illumination?')
+                        else:
+                            self.blinking = 0
+                            self.center = (cx,cy)
                 else:
                     self.blinking = 1
             else:
                 self.blinking = 1
+
+        else: # If using the old algorithm, then take previous center
+            if type(self.center) is not int: #If true, pupil has been seeded and is currently visible in frame
+                cx, cy =  np.round(self.center).astype(int)
+                if cx <= config.engine.subject_parameters["min_radius"] or cx >= self.source.shape[0] - config.engine.subject_parameters["min_radius"] or cy <= config.engine.subject_parameters["min_radius"] or cy >= self.source.shape[1] - config.engine.subject_parameters["min_radius"]:
+                    self.blinking = 1
+                    print('The center of the contour is outside or close to the edge of the image. Blink, dark fur interference, or bad illumination?')
+                else:            
+                    self.center = cx,cy
+                    self.blinking = 0
+                
+
+                        
+
 
     # def cr_thresh(self):
     #     # CR
@@ -145,39 +162,39 @@ class Shape():
         self.fit_() #gets fit model
 
 
-    def center_adj_(self):
+    # def center_adj_(self):
 
 
-        #adjust settings:
-        #circles = cv2.HoughCircles(self.raw, cv2.HOUGH_GRADIENT, 1, 10, param1=200, param2=100, minRadius=self.min_radius, maxRadius=self.max_radius)
-        circles = cv2.HoughCircles(self.raw, cv2.HOUGH_GRADIENT, 1, 10, param1=200, param2=100, minRadius=config.engine.subject_parameters["min_radius"], maxRadius=config.engine.subject_parameters["max_radius"])
+    #     #adjust settings:
+    #     #circles = cv2.HoughCircles(self.raw, cv2.HOUGH_GRADIENT, 1, 10, param1=200, param2=100, minRadius=self.min_radius, maxRadius=self.max_radius)
+    #     circles = cv2.HoughCircles(self.raw, cv2.HOUGH_GRADIENT, 1, 10, param1=200, param2=100, minRadius=config.engine.subject_parameters["min_radius"], maxRadius=config.engine.subject_parameters["max_radius"])
 
-        if circles is None:
-            return
-        else:
-            smallest = -1
-            current = -1
+    #     if circles is None:
+    #         return
+    #     else:
+    #         smallest = -1
+    #         current = -1
 
-            for circle in circles[0, :]:
-                #print(circle[:2])
+    #         for circle in circles[0, :]:
+    #             #print(circle[:2])
 
-                #score = self.distance(circle[:2], self.center) + np.mean(self.raw[int(circle[1])-self.min_radius:int(circle[1])+self.min_radius, int(circle[0]-self.min_radius):int(circle[0]+self.min_radius)])
-                score = self.distance(circle[:2], self.center) + np.mean(self.raw[int(circle[1])-config.engine.subject_parameters["min_radius"]:int(circle[1])+config.engine.subject_parameters["min_radius"], int(circle[0]-config.engine.subject_parameters["min_radius"]):int(circle[0]+config.engine.subject_parameters["min_radius"])])
-                print(score)
-                self.raw[int(circle[1]), int(circle[0])] = 100
-                cv2.imshow("kk", self.raw)
-                cv2.waitKey(0)
-                if smallest == -1:
-                    smallest = score
-                    current = circle[:2]
-                elif score < smallest:
-                    smallest = score
-                    current = circle[:2]
-                #self.center = circles[0,0][:1]
-            #print(tuple(current), self.center)
+    #             #score = self.distance(circle[:2], self.center) + np.mean(self.raw[int(circle[1])-self.min_radius:int(circle[1])+self.min_radius, int(circle[0]-self.min_radius):int(circle[0]+self.min_radius)])
+    #             score = self.distance(circle[:2], self.center) + np.mean(self.raw[int(circle[1])-config.engine.subject_parameters["min_radius"]:int(circle[1])+config.engine.subject_parameters["min_radius"], int(circle[0]-config.engine.subject_parameters["min_radius"]):int(circle[0]+config.engine.subject_parameters["min_radius"])])
+    #             print(score)
+    #             self.raw[int(circle[1]), int(circle[0])] = 100
+    #             cv2.imshow("kk", self.raw)
+    #             cv2.waitKey(0)
+    #             if smallest == -1:
+    #                 smallest = score
+    #                 current = circle[:2]
+    #             elif score < smallest:
+    #                 smallest = score
+    #                 current = circle[:2]
+    #             #self.center = circles[0,0][:1]
+    #         #print(tuple(current), self.center)
 
-            #print(smallest, current, self.center)
-            self.center = tuple(current)
+    #         #print(smallest, current, self.center)
+    #         self.center = tuple(current)
 
 
 
@@ -188,35 +205,45 @@ class Shape():
         cv2.circle(config.engine.pup_source, tuple_int(params[0]), to_int(params[1] * self.expand), black, -1)
 
     def fit(self):
-        try:
 
-            # r = self.walkout()
+        if self.blinking == 0:
+            r = self.walkout()
+            self.center = self.fit_model.fit(r)
+            params = self.fit_model.params
+            config.engine.dataout[self.type_entry] = self.fit_model.params#params
+        else:
+            print('blinking!')
+            config.engine.dataout[self.type_entry] = 'blink'
+
+        # try:
+
+        #     # r = self.walkout()
 
 
-            # self.center = self.fit_model.fit(r)
+        #     # self.center = self.fit_model.fit(r)
 
-            # params = self.fit_model.params
+        #     # params = self.fit_model.params
 
-            # #self.artefact(params)
+        #     # #self.artefact(params)
 
-            # config.engine.dataout[self.type_entry] = self.fit_model.params#params
-            if self.blinking == 0:
-                r = self.walkout()
-                self.center = self.fit_model.fit(r)
-                params = self.fit_model.params
-                config.engine.dataout[self.type_entry] = self.fit_model.params#params
-            else:
-                print('blinking!')
-                config.engine.dataout[self.type_entry] = 'blink'
+        #     # config.engine.dataout[self.type_entry] = self.fit_model.params#params
+        #     if self.blinking == 0:
+        #         r = self.walkout()
+        #         self.center = self.fit_model.fit(r)
+        #         params = self.fit_model.params
+        #         config.engine.dataout[self.type_entry] = self.fit_model.params#params
+        #     else:
+        #         print('blinking!')
+        #         config.engine.dataout[self.type_entry] = 'blink'
                 
-        except IndexError:
+        # except IndexError:
 
-            logger.info(f"fit index error")
-            self.center_adj()
-        except Exception as e:
+        #     logger.info(f"fit index error")
+        #     self.center_adj()
+        # except Exception as e:
 
-            logger.info(f"fit-func error: {e}")
-            self.center_adj()
+        #     logger.info(f"fit-func error: {e}")
+        #     self.center_adj()
 
 
     def cond_(self, r, crop_list):
@@ -266,14 +293,7 @@ class Shape():
 
 
         #diag_matrix = main_diagonal[:canvas_.shape[0], :canvas_.shape[1]]
-
-        try:
-
-            center = np.round(self.center).astype(int)
-        except:
-
-            return
-
+        center = self.center
 
         canvas = np.array(self.source, dtype=int)#.copy()
         canvas[-1,:] = canvas[:,-1] = canvas[0,:] = canvas[:,0] = 0
