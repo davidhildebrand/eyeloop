@@ -77,21 +77,22 @@ class GUI:
         #self.cr_processor_2 = config.engine.cr_processor_2
 
         self.width, self.height = width, height
-        self.binary_width = max(width, 300)
-        self.binary_height = max(height, 200)
+        self.binary_width, self.binary_height = width, height
+        # self.binary_width = max(width, 300)
+        # self.binary_height = max(height, 200)
 
         self.bin_stock = np.zeros((self.binary_height, self.binary_width))
         self.bin_P = self.bin_stock.copy()
         #self.bin_CR = self.bin_stock.copy()
 
-        self.src_txt = np.zeros((20, width, 3))
-        self.prev_txt = self.src_txt.copy()
-        cv2.putText(self.src_txt, 'Source', (15, 12), font, .7, (255, 255, 255), 0, cv2.LINE_4)
-        cv2.putText(self.prev_txt, 'Preview', (15, 12), font, .7, (255, 255, 255), 0, cv2.LINE_4)
-        cv2.putText(self.prev_txt, 'EyeLoop', (width - 50, 12), font, .5, (255, 255, 255), 0, cv2.LINE_8)
+        # self.src_txt = np.zeros((20, width, 3))
+        # self.prev_txt = self.src_txt.copy()
+        # cv2.putText(self.src_txt, 'Source', (15, 12), font, .7, (255, 255, 255), 0, cv2.LINE_4)
+        # cv2.putText(self.prev_txt, 'Preview', (15, 12), font, .7, (255, 255, 255), 0, cv2.LINE_4)
+        # cv2.putText(self.prev_txt, 'EyeLoop', (width - 50, 12), font, .5, (255, 255, 255), 0, cv2.LINE_8)
 
-        self.bin_stock_txt = np.zeros((20, self.binary_width))
-        self.bin_stock_txt_selected = self.bin_stock_txt.copy()
+        # self.bin_stock_txt = np.zeros((20, self.binary_width))
+        # self.bin_stock_txt_selected = self.bin_stock_txt.copy()
         # self.crstock_txt = self.bin_stock_txt.copy()
         # self.crstock_txt[0:1, 0:self.binary_width] = 1
         # self.crstock_txt_selected = self.crstock_txt.copy()
@@ -118,17 +119,17 @@ class GUI:
 
         axcolor = 'lightgoldenrodyellow'
 
-        axbinarythreshold = plt.axes([0.25, 0.96, 0.65, 0.03], facecolor=axcolor)
-        axblur = plt.axes([0.25, 0.92, 0.65, 0.03], facecolor=axcolor)
-        axmin_radius = plt.axes([0.25, 0.88, 0.65, 0.03], facecolor=axcolor)
-        axmax_radius = plt.axes([0.25, 0.84, 0.65, 0.03], facecolor=axcolor)
-        axgain = plt.axes([0.25, 0.80, 0.65, 0.03], facecolor=axcolor)
-        axWidth = plt.axes([0.25, 0.76, 0.65, 0.03], facecolor=axcolor)
-        axHeight = plt.axes([0.25, 0.72, 0.65, 0.03], facecolor=axcolor)
-        axOffsetX = plt.axes([0.25, 0.68, 0.65, 0.03], facecolor=axcolor)
-        axOffsetY = plt.axes([0.25, 0.64, 0.65, 0.03], facecolor=axcolor)
-        axlower_lim_std = plt.axes([0.25, 0.60, 0.65, 0.03], facecolor=axcolor)
-        axupper_lim_std = plt.axes([0.25, 0.56, 0.65, 0.03], facecolor=axcolor)
+        axbinarythreshold = plt.axes([0.25, 0.95, 0.65, 0.03], facecolor=axcolor)
+        axblur = plt.axes([0.25, 0.90, 0.65, 0.03], facecolor=axcolor)
+        axmin_radius = plt.axes([0.25, 0.85, 0.65, 0.03], facecolor=axcolor)
+        axmax_radius = plt.axes([0.25, 0.80, 0.65, 0.03], facecolor=axcolor)
+        axgain = plt.axes([0.25, 0.75, 0.65, 0.03], facecolor=axcolor)
+        axWidth = plt.axes([0.25, 0.70, 0.65, 0.03], facecolor=axcolor)
+        axHeight = plt.axes([0.25, 0.65, 0.65, 0.03], facecolor=axcolor)
+        axOffsetX = plt.axes([0.25, 0.60, 0.65, 0.03], facecolor=axcolor)
+        axOffsetY = plt.axes([0.25, 0.55, 0.65, 0.03], facecolor=axcolor)
+        axlower_lim_std = plt.axes([0.25, 0.50, 0.65, 0.03], facecolor=axcolor)
+        axupper_lim_std = plt.axes([0.25, 0.45, 0.65, 0.03], facecolor=axcolor)
         
         sbinarythreshold =  Slider(axbinarythreshold, 'BinThresh', 1, 200, valinit=config.engine.subject_parameters["p_binarythreshold"],valstep=1)
         sblur = Slider(axblur, 'Blur', 1, 49, valinit= config.engine.subject_parameters["p_blur"], valstep=2)
@@ -180,21 +181,21 @@ class GUI:
             slower_lim_std.reset()
             supper_lim_std.reset()
             
-        resetax = plt.axes([0.6, 0.025, 0.25, 0.04])
+        resetax = plt.axes([0.375, 0.03, 0.25, 0.04])
         button1 = Button(resetax, 'Reset', color=axcolor, hovercolor='0.975')
 
         def reset1(event):
             reset()
         button1.on_clicked(reset1)
 
-        resetax2 = plt.axes([0.6, 0.075, 0.25, 0.04])
+        resetax2 = plt.axes([0.375, 0.09, 0.25, 0.04])
         button2 = Button(resetax2, 'Switch Algorithm', color=axcolor, hovercolor='0.975')
         def reset2(event):
             self.pupil_processor.convex_hull = not self.pupil_processor.convex_hull
             print("Filling holes in pupil processor: " + str(self.pupil_processor.convex_hull))
         button2.on_clicked(reset2)
         
-        resetax3 = plt.axes([0.6, 0.125, 0.25, 0.04])
+        resetax3 = plt.axes([0.375, 0.15, 0.25, 0.04])
         button3 = Button(resetax3, 'Start!', color=axcolor, hovercolor='0.975')
         def reset3(event):
             print("Initiating tracking..")
@@ -211,20 +212,20 @@ class GUI:
             config.engine.activate()
         button3.on_clicked(reset3)
 
-        resetax4 = plt.axes([0.6, 0.175, 0.25, 0.04])
+        resetax4 = plt.axes([0.375, 0.21, 0.25, 0.04])
         button4 = Button(resetax4, 'Save and Quit', color=axcolor, hovercolor='0.975')
         def reset4(event):
             config.engine.release()
         button4.on_clicked(reset4)
 
-        resetax5 = plt.axes([0.6, 0.225, 0.25, 0.04])
+        resetax5 = plt.axes([0.375, 0.27, 0.25, 0.04])
         button5 = Button(resetax5, 'Reset and Quit', color=axcolor, hovercolor='0.975')
         def reset5(event):
             reset()
             config.engine.release()
         button5.on_clicked(reset5)
 
-        resetax6 = plt.axes([0.6, 0.275, 0.25, 0.04])
+        resetax6 = plt.axes([0.375, 0.33, 0.25, 0.04])
         button6 = Button(resetax6, 'Start Center', color=axcolor, hovercolor='0.975')
         def reset6(event):
             config.engine.extractors[1].gui_centering_button_press = True #extractors[1] corresponds to DAQ_extractor
@@ -236,7 +237,7 @@ class GUI:
                 print('Centered')
         button6.on_clicked(reset6)
 
-        resetax7 = plt.axes([0.6, 0.325, 0.25, 0.04])
+        resetax7 = plt.axes([0.375, 0.39, 0.25, 0.04])
         if config.engine.save_images:
             button7 = Button(resetax7, 'Save Images = On', color=axcolor, hovercolor='0.975')
         else:
@@ -250,17 +251,17 @@ class GUI:
                 button7.label.set_text('Save Images = Off')
         button7.on_clicked(reset7)
 
-        self.plot.ax2 = plt.axes([0.06, 0.05, 0.5, 0.5])
-        (self.plot.ln,) = self.plot.ax2.plot(self.plot.x, self.plot.y, animated=True)
-        plt.xlim([-10.5, 10.5])
-        plt.ylim([-10.5, 10.5])
+        # self.plot.ax2 = plt.axes([0.06, 0.05, 0.5, 0.5])
+        # (self.plot.ln,) = self.plot.ax2.plot(self.plot.x, self.plot.y, animated=True)
+        # plt.xlim([-10.5, 10.5])
+        # plt.ylim([-10.5, 10.5])
 
         plt.show(block=False)
         plt.pause(0.05)
 
-        self.plot.bg = self.plot.fig.canvas.copy_from_bbox(self.plot.ax2.bbox)
-        self.plot.ax2.draw_artist(self.plot.ln)
-        self.plot.fig.canvas.blit(self.plot.fig.bbox)
+        # self.plot.bg = self.plot.fig.canvas.copy_from_bbox(self.plot.ax2.bbox)
+        # self.plot.ax2.draw_artist(self.plot.ln)
+        # self.plot.fig.canvas.blit(self.plot.fig.bbox)
 
         self.plot.button1 = button1 #otherwise, buttons are gone
         self.plot.button2 = button2
@@ -325,11 +326,11 @@ class GUI:
     def adj_update(self, img):
         source_rgb = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         self.bin_P = self.bin_stock.copy()
-
-        if self.pupil_(source_rgb):
-            self.bin_P[0:20, 0:self.binary_width] = self.bin_stock_txt_selected
-        else:
-            self.bin_P[0:20, 0:self.binary_width] = self.bin_stock_txt
+        self.pupil_(source_rgb)
+        # if self.pupil_(source_rgb):
+        #     self.bin_P[0:20, 0:self.binary_width] = self.bin_stock_txt_selected
+        # else:
+        #     self.bin_P[0:20, 0:self.binary_width] = self.bin_stock_txt
 
         try:
             pupil_area = self.pupil_processor.source
@@ -340,9 +341,9 @@ class GUI:
         except:
             pass
 
-        self.bin_stock_txt = np.zeros((20, self.binary_width))
-        cv2.putText(self.bin_stock_txt, 'Pupil | thresh R/F {} | blur T/G {}'.format(config.engine.subject_parameters["p_binarythreshold"],config.engine.subject_parameters["p_blur"]), (10, 15), font, .7, 1, 0, cv2.LINE_4)
-        self.bin_P[0:20, 0:self.binary_width] = self.bin_stock_txt
+        # self.bin_stock_txt = np.zeros((20, self.binary_width))
+        # cv2.putText(self.bin_stock_txt, 'Pupil | thresh R/F {} | blur T/G {}'.format(config.engine.subject_parameters["p_binarythreshold"],config.engine.subject_parameters["p_blur"]), (10, 15), font, .7, 1, 0, cv2.LINE_4)
+        # self.bin_P[0:20, 0:self.binary_width] = self.bin_stock_txt
 
         #self.cr1_(source_rgb)
         #self.cr2_(source_rgb)
