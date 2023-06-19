@@ -227,7 +227,7 @@ class GUI:
         resetax6 = plt.axes([0.6, 0.275, 0.25, 0.04])
         button6 = Button(resetax6, 'Start Center', color=axcolor, hovercolor='0.975')
         def reset6(event):
-            config.engine.extractors[1].x_key_detected = True #extractors[1] corresponds to DAQ_extractor
+            config.engine.extractors[1].gui_centering_button_press = True #extractors[1] corresponds to DAQ_extractor
             if config.engine.extractors[1].recording_baseline == False:
                 button6.label.set_text('Centering...')
                 print('Centering...')
