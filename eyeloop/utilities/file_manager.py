@@ -15,32 +15,32 @@ class File_Manager:
     - Saves images from camera streams.
     """
 
-    #def __init__(self, output_root: Union[Path, str], img_format:str) -> None:
-    def __init__(self, output_root: Union[Path, str], output_root_images: Union[Path, str], img_format:str) -> None:
+    def __init__(self, output_root: Union[Path, str], img_format:str) -> None:
+    #def __init__(self, output_root: Union[Path, str], output_root_images: Union[Path, str], img_format:str) -> None:
         self.output_root = output_root
-        self.output_root_images = output_root_images
+        # self.output_root_images = output_root_images
         self.input_folderpath = ""
         self.img_format = img_format
 
 
-        self.output_root.mkdir(exist_ok=True, parents=True)
+        # self.output_root.mkdir(exist_ok=True, parents=True)
 
-        timestamp = time.strftime("%Y%m%d-%H%M%S")
-        self.new_folderpath = self.output_root / f"trial_{timestamp}"
-        self.new_folderpath.mkdir(exist_ok=True)
-        print(f"Outputting data to {self.new_folderpath}")  # TODO convert to logging call
+        # timestamp = time.strftime("%Y%m%d-%H%M%S")
+        # self.new_folderpath = self.output_root / f"trial_{timestamp}"
+        # self.new_folderpath.mkdir(exist_ok=True)
+        # print(f"Outputting data to {self.new_folderpath}")  # TODO convert to logging call
 
-        self.new_folderpath_images = self.output_root_images / f"trial_{timestamp}"
-        self.new_folderpath_images.mkdir(exist_ok=True)
-        print(f"Outputting images to {self.new_folderpath_images}")  # TODO convert to logging call
+        # self.new_folderpath_images = self.output_root_images / f"trial_{timestamp}"
+        # self.new_folderpath_images.mkdir(exist_ok=True)
+        # print(f"Outputting images to {self.new_folderpath_images}")  # TODO convert to logging call
 
-    def save_image(self, image: np.ndarray, frame: int) -> None:
-        """
-        Saves video sequence to new folderpath.
-        """
-        #img_pth = Path(self.new_folderpath, self.img_format.replace("$", str(frame), 1))
-        img_pth = Path(self.new_folderpath_images, self.img_format.replace("$", str(frame), 1))
-        cv2.imwrite(str(img_pth), image)
+    # def save_image(self, image: np.ndarray, frame: int) -> None:
+    #     """
+    #     Saves video sequence to new folderpath.
+    #     """
+    #     #img_pth = Path(self.new_folderpath, self.img_format.replace("$", str(frame), 1))
+    #     img_pth = Path(self.outputimages_path, self.img_format.replace("$", str(frame), 1))
+    #     cv2.imwrite(str(img_pth), image)
 
     def read_image(self, frame: int) -> np.ndarray:
         """

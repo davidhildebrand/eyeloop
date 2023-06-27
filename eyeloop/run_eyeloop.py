@@ -35,14 +35,14 @@ class EyeLoop:
         welcome("Server")
 
         config.arguments = Arguments(args)
-        #config.file_manager = File_Manager(output_root=config.arguments.output_dir, img_format = config.arguments.img_format)
-        config.file_manager = File_Manager( output_root=config.arguments.output_dir,
-                                            output_root_images=config.arguments.output_dir_images,
-                                            img_format = config.arguments.img_format)
+        config.file_manager = File_Manager(output_root=config.arguments.output_dir, img_format = config.arguments.img_format)
+        #config.file_manager = File_Manager( output_root=config.arguments.output_dir,
+        #                                    output_root_images=config.arguments.output_dir_images,
+        #                                    img_format = config.arguments.img_format)
 
 
-        if logger is None:
-            logger, logger_filename = setup_logging(log_dir=config.file_manager.new_folderpath, module_name="run_eyeloop")
+        #if logger is None:
+        #    logger, logger_filename = setup_logging(log_dir=config.file_manager.new_folderpath, module_name="run_eyeloop")
 
         #if config.arguments.blink == 0:
         self.run()
@@ -68,7 +68,7 @@ class EyeLoop:
         config.engine = Engine(self)
 
         fps_counter = FPS_extractor()
-        data_acquisition = DAQ_extractor(config.file_manager.new_folderpath)
+        data_acquisition = DAQ_extractor()
 
         file_path = config.arguments.extractors
 

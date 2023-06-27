@@ -131,10 +131,10 @@ class GUI:
         axlower_lim_std = plt.axes([0.25, 0.50, 0.65, 0.03], facecolor=axcolor)
         axupper_lim_std = plt.axes([0.25, 0.45, 0.65, 0.03], facecolor=axcolor)
         
-        sbinarythreshold =  Slider(axbinarythreshold, 'BinThresh', 1, 200, valinit=config.engine.subject_parameters["p_binarythreshold"],valstep=1)
-        sblur = Slider(axblur, 'Blur', 1, 49, valinit= config.engine.subject_parameters["p_blur"], valstep=2)
-        smin_radius = Slider(axmin_radius, 'MinRadius', 1, 300, valinit=config.engine.subject_parameters["min_radius"], valstep=1)
-        smax_radius = Slider(axmax_radius, 'MaxRadius', 1, 300, valinit=config.engine.subject_parameters["max_radius"], valstep=1)
+        sbinarythreshold =  Slider(axbinarythreshold, 'BinThresh(' + str(round(config.engine.subject_parameters["p_binarythreshold"])) + ')', 1, 200, valinit=config.engine.subject_parameters["p_binarythreshold"],valstep=1)
+        sblur = Slider(axblur, 'Blur(' + str(round(config.engine.subject_parameters["p_blur"])) + ')', 1, 49, valinit= config.engine.subject_parameters["p_blur"], valstep=2)
+        smin_radius = Slider(axmin_radius, 'MinRadius(' + str(round(config.engine.subject_parameters["min_radius"])) + ')', 1, 300, valinit=config.engine.subject_parameters["min_radius"], valstep=1)
+        smax_radius = Slider(axmax_radius, 'MaxRadius(' + str(round(config.engine.subject_parameters["max_radius"])) + ')', 1, 300, valinit=config.engine.subject_parameters["max_radius"], valstep=1)
         sgain = Slider(axgain, 'VoltageGain(' + str(round(config.engine.subject_parameters["voltage_gain"],2)) + ')', 1, 20, valinit=config.engine.subject_parameters["voltage_gain"], valstep=0.1)
         sWidth = Slider(axWidth, 'ROIWidth(' + str(config.engine.subject_parameters["Width"]) + ')', 16, 800, valinit=config.engine.subject_parameters["Width"], valstep=16)
         sHeight = Slider(axHeight, 'ROIHeight(' + str(config.engine.subject_parameters["Height"]) + ')', 16, 600, valinit=config.engine.subject_parameters["Height"], valstep=4)
@@ -181,25 +181,26 @@ class GUI:
             slower_lim_std.reset()
             supper_lim_std.reset()
             
-        resetax = plt.axes([0.375, 0.03, 0.25, 0.04])
+        resetax = plt.axes([0.375, 0.03, 0.4, 0.04])
         button1 = Button(resetax, 'Reset', color=axcolor, hovercolor='0.975')
 
         def reset1(event):
             reset()
         button1.on_clicked(reset1)
 
-        resetax2 = plt.axes([0.375, 0.09, 0.25, 0.04])
+        resetax2 = plt.axes([0.375, 0.09, 0.4, 0.04])
         button2 = Button(resetax2, 'Switch Algorithm', color=axcolor, hovercolor='0.975')
         def reset2(event):
-            self.pupil_processor.convex_hull = not self.pupil_processor.convex_hull
-            print("Filling holes in pupil processor: " + str(self.pupil_processor.convex_hull))
+            self.pupil_processor.new_algorithm = not self.pupil_processor.new_algorithm
+            print("Filling holes in pupil processor: " + str(self.pupil_processor.new_algorithm))
         button2.on_clicked(reset2)
         
-        resetax3 = plt.axes([0.375, 0.15, 0.25, 0.04])
+        resetax3 = plt.axes([0.375, 0.15, 0.4, 0.04])
         button3 = Button(resetax3, 'Start!', color=axcolor, hovercolor='0.975')
         def reset3(event):
-            print("Initiating tracking..")
-            self.pupil_processor.convex_hull = True
+            print("Initiating tracking...")
+            self.pupil_processor.new_algorithm = True
+            print("Using new algorithm")
             plt.close(self.plot.fig)
             delattr(self, 'plot')
             plt.close('all')
@@ -212,20 +213,28 @@ class GUI:
             config.engine.activate()
         button3.on_clicked(reset3)
 
-        resetax4 = plt.axes([0.375, 0.21, 0.25, 0.04])
+        resetax4 = plt.axes([0.375, 0.21, 0.4, 0.04])
         button4 = Button(resetax4, 'Save and Quit', color=axcolor, hovercolor='0.975')
         def reset4(event):
             config.engine.release()
         button4.on_clicked(reset4)
 
-        resetax5 = plt.axes([0.375, 0.27, 0.25, 0.04])
-        button5 = Button(resetax5, 'Reset and Quit', color=axcolor, hovercolor='0.975')
+        resetax5 = plt.axes([0.375, 0.27, 0.4, 0.04])
+        if config.engine.start_mode == 'manual':
+            button5 = Button(resetax5, 'Starting mode = Manual', color=axcolor, hovercolor='0.975')
+        elif config.engine.start_mode == 'scope_trigger': 
+            button5 = Button(resetax5, 'Starting mode = ScopeTrigger', color=axcolor, hovercolor='0.975')
         def reset5(event):
-            reset()
-            config.engine.release()
+            if config.engine.start_mode == 'manual':
+                config.engine.start_mode = 'scope_trigger'
+                button5.label.set_text('Starting mode = ScopeTrigger')
+            elif config.engine.start_mode == 'scope_trigger':
+                config.engine.start_mode = 'manual'
+                button5.label.set_text('Starting mode = Manual')
+            print('Start mode set to: ' + str(config.engine.start_mode))
         button5.on_clicked(reset5)
 
-        resetax6 = plt.axes([0.375, 0.33, 0.25, 0.04])
+        resetax6 = plt.axes([0.375, 0.33, 0.4, 0.04])
         button6 = Button(resetax6, 'Start Center', color=axcolor, hovercolor='0.975')
         def reset6(event):
             config.engine.extractors[1].gui_centering_button_press = True #extractors[1] corresponds to DAQ_extractor
@@ -237,7 +246,7 @@ class GUI:
                 print('Centered')
         button6.on_clicked(reset6)
 
-        resetax7 = plt.axes([0.375, 0.39, 0.25, 0.04])
+        resetax7 = plt.axes([0.375, 0.39, 0.4, 0.04])
         if config.engine.save_images:
             button7 = Button(resetax7, 'Save Images = On', color=axcolor, hovercolor='0.975')
         else:
@@ -295,8 +304,7 @@ class GUI:
 
     def update_record(self, frame_preview) -> None:
         cv2.imshow("Recording", frame_preview)
-        if cv2.waitKey(1) == ord('q'):
-            config.engine.release()
+
 
     def skip_track(self):
         self.update = self.real_update
@@ -394,8 +402,25 @@ class GUI:
         threading.Timer(self.fps, self.skip_track).start() #run feed every n secs (n=1)
         self.update = lambda _: None
 
-        if cv2.waitKey(1) == ord("q"):
+        key_being_pressed = cv2.waitKey(1)
+        if key_being_pressed == ord('q'):
             config.engine.release()
+        elif key_being_pressed == ord('m'):
+            if config.engine.start_mode == 'manual':
+                config.engine.start_mode = 'scope_trigger'
+            elif config.engine.start_mode == 'scope_trigger':
+                config.engine.start_mode = 'manual'
+            print('Start mode set to: ' + str(config.engine.start_mode))
+        elif key_being_pressed == ord('s') and config.engine.start_mode == 'manual':
+            if config.engine.continue_experiment:
+                config.engine.stop_experiment = True
+                print('Ending manual experiment')
+            else:
+                config.engine.start_experiment = True
+                print('Starting manual experiment')
+
+        # if cv2.waitKey(1) == ord("q"):
+        #     config.engine.release()
 
 
 # import os

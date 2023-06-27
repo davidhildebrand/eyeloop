@@ -35,11 +35,18 @@ class Engine:
         #self.cr_processor_2 = Shape(type = 2, n = 2)
         #self.pupil_processor = Shape()
 
-        self.save_images = False
+        self.save_images = True
 
         #   Via "gui", assign "refresh_pupil" to function "processor.refresh_source"
         #   when the pupil has been selected.
         self.refresh_pupil = lambda x: None
+        self.scope_started = False
+        self.start_mode = 'manual'
+
+        self.start_experiment = False # This will create a new folder with logs (and frames, if saving)
+        self.continue_experiment = False # For outputing results to the folder
+        self.stop_experiment = False # For stopping the experiment
+
 
     def load_extractors(self, extractors: list = None) -> None:
         if extractors is None:
@@ -232,7 +239,7 @@ class Engine:
         
         if "FullFOV" not in self.subject_parameters['Name']:
             print(self.subject_parameters['Name'])
-            parameters_path = f"{config.file_manager.output_root}\Parameters_{self.subject_parameters['Name']}.npy"
+            parameters_path = f"{config.arguments.parameters_dir}\Parameters_{self.subject_parameters['Name']}.npy"
             np.save(parameters_path, self.subject_parameters)
             print("Parameters saved: " + parameters_path)
             print(self.subject_parameters)
@@ -277,7 +284,7 @@ class Engine:
             self.subject_parameters["center_x_pix"] = self.subject_parameters["Width"] / 2
             self.subject_parameters["center_y_pix"] = self.subject_parameters["Height"] / 2
         
-        parameters_path = f"{config.file_manager.output_root}\Parameters_{self.subject_parameters['Name']}.npy"
+        parameters_path = f"{config.arguments.parameters_dir}\Parameters_{self.subject_parameters['Name']}.npy"
         np.save(parameters_path, self.subject_parameters)
         print("Parameters saved in: " + parameters_path)
 

@@ -1,5 +1,5 @@
 import eyeloop.config as config
-import json
+# import json
 import logging
 import nidaqmx
 import numpy as np
@@ -9,14 +9,14 @@ import matplotlib.pyplot as plt
 logging.getLogger(name='matplotlib').setLevel(logging.WARNING) #main logging is set to DEBUG mode
 
 class DAQ_extractor:
-    def __init__(self, output_dir):
-        self.output_dir = output_dir
-        self.datalog_path = Path(output_dir, f"datalog.json")
-        self.file = open(self.datalog_path, "a")
+    def __init__(self):
+        #self.output_dir = output_dir
+        #self.datalog_path = Path(output_dir, f"datalog.json")
+        #self.file = open(self.datalog_path, "a")
 
         self.voltage_gain = 1.0
 
-        self.experiment_started = False
+        self.tracking_started = False
         self.recording_baseline = False
         self.first_run = True
 
@@ -38,21 +38,21 @@ class DAQ_extractor:
         
         plt.close(self.plot.fig)
         delattr(self, 'plot')
-        self.file.write(json.dumps('Experiment started') + "\n")
-        self.file.write(json.dumps('Parameters: ') + "\n")
-        self.file.write(json.dumps(config.engine.subject_parameters, indent = 4))
-        self.experiment_started = True
+        # self.file.write(json.dumps('Experiment started') + "\n")
+        # self.file.write(json.dumps('Parameters: ') + "\n")
+        # self.file.write(json.dumps(config.engine.subject_parameters, indent = 4))
+        self.tracking_started = True
         return
 
     def fetch(self, core):
-        
+        self.core = core
         try:
-            pupil_coords = core.dataout["pupil"][0]
+            pupil_coords = self.core.dataout["pupil"][0]
             config.engine.last_pupil_coords = pupil_coords
             pupil_x_volts = ((pupil_coords[0] - self.center_x_pix) * config.engine.subject_parameters["voltage_gain"] / 100) * 10 # One hundred pixels up should be +10V at gain = 1
             # The pupil_y pixel coordinate increases from top-to-bottom of the image. We'll flip the sign of the voltage
             pupil_y_volts = ((self.center_y_pix - pupil_coords[1]) * config.engine.subject_parameters["voltage_gain"] / 100) * 10 # One hundred pixels up should be +10V at gain = 1
-            pupil_area_volts = (core.dataout["pupil"][1] + core.dataout["pupil"][2]) / 2 / 100 * 20 - 10 # Radius of 100 pixels is 10 V.
+            pupil_area_volts = (self.core.dataout["pupil"][1] + self.core.dataout["pupil"][2]) / 2 / 100 * 20 - 10 # Radius of 100 pixels is 10 V.
             pupil_x_volts = np.clip(pupil_x_volts, -10, 10)
             pupil_y_volts = np.clip(pupil_y_volts, -10, 10)
             pupil_area_volts = np.clip(pupil_area_volts, -10, 10)
@@ -66,12 +66,13 @@ class DAQ_extractor:
         if self.output_pupil_size:
             self.pupil_area_task.write([pupil_area_volts,pupil_detected_volts])
 
-        try:
-            self.file.write(json.dumps(core.dataout) + "\n")
-        except ValueError:
-            pass
+        # try:
+        #     if config.engine.scope_started:
+        #         self.file.write(json.dumps(core.dataout) + "\n")
+        # except ValueError:
+        #     pass
         
-        if self.experiment_started == False:
+        if self.tracking_started == False:
 
             ## Plotting in real time during calibration
             if self.first_run:
@@ -132,11 +133,11 @@ class DAQ_extractor:
                     self.previous_pupil_y_pixs.append(pupil_coords[1])
 
     def release(self, core):
-        try:
-            self.file.write(json.dumps(core.dataout) + "\n")
-            self.file.close()
-        except ValueError:
-            pass
+        # try:
+        #     self.file.write(json.dumps(core.dataout) + "\n")
+        #     self.file.close()
+        # except ValueError:
+        #     pass
         self.fetch(core)
         #return
         #logging.debug("DAQ_extractor.release() called")

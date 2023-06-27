@@ -1,8 +1,12 @@
 import cv2
+from datetime import datetime
 import eyeloop.config as config
 from eyeloop.importers.importer import IMPORTER
 import glob
+import json
 import numpy as np
+import os
+from pathlib import Path
 import PySpin
 import tkinter as tk
 import nidaqmx
@@ -18,10 +22,11 @@ class Importer(IMPORTER):
         height, width = image.shape
         print('Image shape: '+ str(image.shape))
         self.arm(width, height, image)
-        self.experiment_started = False
+        self.tracking_started = False
 
         # Task for counting acquisition frames via a counter input
         self.frame_counter_scope = 0
+        self.frame_counter_scope_at_start_experiment = 0
         acqcount_src = 'MarmoEye_XY_USB6001/ctr0'
         acqcount_line = '/MarmoEye_XY_USB6001/PFI0'
         self.acqcount_task = nidaqmx.Task()
@@ -40,25 +45,83 @@ class Importer(IMPORTER):
             image_result.Release()
             config.engine.iterate(image)
             self.frame += 1 
-            if self.experiment_started and config.engine.save_images:
+            
+            if self.tracking_started and config.engine.start_mode == 'scope_trigger':
+                self.past_frame_counter_scope = self.frame_counter_scope
                 self.frame_counter_scope = self.acqcount_task.read()
-                quotient_256x256, remainder_256x256 = divmod(self.frame_counter_scope, 65536)
-                quotient_256, remainder_256 = divmod(remainder_256x256, 256)
+
+                if self.frame_counter_scope > self.past_frame_counter_scope:
+                    if config.engine.start_experiment == False and config.engine.continue_experiment == False:
+                        print('Scope started, starting experiment!')
+                        self.frame_counter_scope_at_start_experiment = self.frame_counter_scope
+                        config.engine.scope_started = True
+                        config.engine.start_experiment = True
+
+            if config.engine.start_experiment:
+                print('Starting experiment')
+                config.engine.start_experiment = False
+                config.engine.continue_experiment = True
+                self.frame = 0
+                save_path = str(config.arguments.output_dir)
+                datestr = datetime.utcnow().strftime('%Y%m%dd')
+                timestr = datetime.utcnow().strftime('%H%M%StUTC')
+                animal_name = config.engine.subject_parameters["Name"].split("_")[0]
+                face_or_eye = config.engine.subject_parameters["Name"].split("_")[1]
+                logfile_name = timestr + '_Eyeloop_' + face_or_eye + '.json'
+                logfile_path = save_path + os.path.sep + animal_name + os.path.sep + \
+                    datestr + os.path.sep + timestr + '_Eyeloop_' + face_or_eye + os.path.sep + logfile_name
+                self.outputimages_path = os.path.dirname(logfile_path) + os.path.sep + 'Frames' + os.path.sep
+                if not os.path.exists(self.outputimages_path):
+                    os.makedirs(self.outputimages_path)
+
+                self.file = open(logfile_path, "a")
+                self.file.write(json.dumps('Parameters: ') + "\n")
+                self.file.write(json.dumps(config.engine.subject_parameters, indent = 4)+ "\n")
+                self.file.write(json.dumps('Experiment started') + "\n")
+                    
+
+            if config.engine.continue_experiment and config.engine.save_images:
+                data_for_json = config.engine.extractors[1].core.dataout
+                data_for_json["pupil"] = data_for_json["pupil"][0]
+                self.file.write(json.dumps(config.engine.extractors[1].core.dataout) + "\n")
                 image_for_saving = deepcopy(image)
+                if config.engine.start_mode == 'scope_trigger':
+                    self.scopeframe_to_be_encoded = self.frame_counter_scope - self.frame_counter_scope_at_start_experiment
+                    quotient_256x256, remainder_256x256 = divmod(self.scopeframe_to_be_encoded, 65536)
+                    quotient_256, remainder_256 = divmod(remainder_256x256, 256)
+                    
+                    # You can recover the frame counter with this:
+                    #calculated_frame_scope = 256 * 256 * quotient_256x256 + 256 * quotient_256 + remainder_256
 
-                # Using a 3x3 pix array in the top left for simplicity and peace of mind...
-                image_for_saving[:3,:3] = remainder_256
-                image_for_saving[:2,:2] = quotient_256
-                image_for_saving[:1,:1] = quotient_256x256
+                    # Using a 3x3 pix array in the top left for simplicity and peace of mind...
+                    image_for_saving[:3,:3] = remainder_256
+                    image_for_saving[:2,:2] = quotient_256
+                    image_for_saving[:1,:1] = quotient_256x256
+
+                # self.save(self.outputimages_path,image_for_saving)
+                if config.engine.start_mode == 'scope_trigger':
+                    img_pth = self.outputimages_path + config.arguments.img_format.replace("$", str(self.frame) + '_scopeframe_' + str(self.scopeframe_to_be_encoded), 1)
+                else:
+                    img_pth = self.outputimages_path + config.arguments.img_format.replace("$", str(self.frame), 1)
+                cv2.imwrite(img_pth, image_for_saving)
+
+                    # try:
+                    #     self.file.write(json.dumps(core.dataout) + "\n")
+                    # except ValueError:
+                    #     pass
+
+            if config.engine.stop_experiment:
+                print('Ending experiment')
+                config.engine.stop_experiment = False
+                config.engine.continue_experiment = False
+                self.file.close()
+                if config.engine.start_mode == 'scope_trigger':
+                    self.frame_counter_scope_at_start_experiment = self.frame_counter_scope
+            
+
                 
-                self.save(image_for_saving)
-
-                # You can recover the frame counter with this:
-                #calculated_frame_scope = 256 * 256 * quotient_256x256 + 256 * quotient_256 + remainder_256
-
     def activate(self) -> None:
-        self.experiment_started = True
-        self.frame = 0
+        self.tracking_started = True
         self.acqcount_task.start()
 
     def release(self) -> None:
@@ -121,7 +184,7 @@ class Importer(IMPORTER):
         node_height = PySpin.CIntegerPtr(nodemap.GetNode("Height"))
         max_height = node_height.GetMax()
 
-        search_string = str(config.file_manager.output_root) + "/Parameters_*.npy"
+        search_string = str(config.arguments.parameters_dir) + "/Parameters_*.npy"
         parameter_files = glob.glob(search_string)
         names_available_parameters = []
         available_parameters = []

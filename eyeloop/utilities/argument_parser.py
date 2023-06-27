@@ -15,6 +15,7 @@ class Arguments:
         self.markers = None
         self.video = None
         self.output_dir = None
+        self.parameters_dir = None
         self.importer = None
         self.scale = None
         self.tracking = None
@@ -31,11 +32,13 @@ class Arguments:
 
         #parser.add_argument("-o", "--output_dir", default=str(PROJECT_DIR.joinpath("data").absolute()), type=str,
         #                    help="Specify output destination.")
-        
-        parser.add_argument("-o", "--output_dir", default='C:\FreiwaldSync\MarmoScope\Stimulus\Data\Eyeloop', type=str,
-                            help="Specify output destination for data, logs, parameters.")
-        parser.add_argument("-oi", "--output_dir_images", default='C:\EyeloopImages', type=str,
-                            help="Specify output destination for images.")
+        parser.add_argument("-o", "--output_dir", default='C:\Eyeloop', type=str,
+                            help="Specify output destination for data, logs, images.")
+
+        parser.add_argument("-p", "--parameters_dir", default='C:\FreiwaldSync\MarmoScope\Stimulus\Data\Eyeloop', type=str,
+                            help="Specify input path for parameters.")
+        #parser.add_argument("-oi", "--output_dir_images", default='C:\EyeloopImages', type=str,
+        #                    help="Specify output destination for images.")
         parser.add_argument("-c", "--config", default="0", type=str, help="Input a .pupt config file (preset).")
         #parser.add_argument("-i", "--importer", default="cv", type=str,
         #                    help="Set import route of stream (cv, vimba, ...)")
@@ -90,7 +93,8 @@ class Arguments:
         self.markers = parsed_args.markers
         self.video = Path(parsed_args.video.strip("\'\"")).absolute()  # Handle quotes used in argument
         self.output_dir = Path(parsed_args.output_dir.strip("\'\"")).absolute()
-        self.output_dir_images = Path(parsed_args.output_dir_images.strip("\'\"")).absolute()
+        #self.output_dir_images = Path(parsed_args.output_dir_images.strip("\'\"")).absolute()
+        self.parameters_dir = Path(parsed_args.parameters_dir.strip("\'\"")).absolute()
         self.importer = parsed_args.importer.lower()
         self.scale = parsed_args.scale
         self.tracking = parsed_args.tracking

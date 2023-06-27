@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from pathlib import Path
 
 import eyeloop.config as config
 from eyeloop.utilities.general_operations import tuple_int
@@ -63,8 +64,11 @@ class IMPORTER:
 
         return cv2.resize(image, None, fx=self.scale, fy=self.scale, interpolation=cv2.INTER_NEAREST)
 
-    def save(self, image: np.ndarray) -> None:
-        config.file_manager.save_image(image, self.frame)
+    def save(self, output_path: str,image: np.ndarray) -> None:
+        #config.file_manager.save_image(image, self.frame)
+
+        img_pth = Path(self.output_path, config.arguments.img_format.replace("$", str(self.frame), 1))
+        cv2.imwrite(str(img_pth), image)
 
     def release(self):
         self.release = lambda:None

@@ -12,6 +12,7 @@ class FPS_extractor:
         self.activate = lambda: None
 
         self.last_frame = 0
+        self.last_frame_counter_scope = 0
 
         self.thread = threading.Timer(1, self.get_fps)
         self.thread.start()
@@ -20,8 +21,11 @@ class FPS_extractor:
     def get_fps(self):
         print(f"    Processing {config.importer.frame - self.last_frame} frames per second.")
         try: # FPS_extractor is initialized before the importer... so the line below will not worked until the importer is loaded
-            if config.importer.experiment_started and config.engine.save_images:
-                print(f"    Microscope frame counter: {config.importer.frame_counter_scope}.")
+            if config.importer.tracking_started and config.engine.start_mode == 'scope_trigger':
+                print(f"    Microscope frame counter: {config.importer.frame_counter_scope - config.importer.frame_counter_scope_at_start_experiment}.")
+                if config.importer.frame_counter_scope == self.last_frame_counter_scope and config.engine.continue_experiment:
+                    config.engine.stop_experiment = True
+                self.last_frame_counter_scope = config.importer.frame_counter_scope
         except:
             print("Please choose a config option from the GUI")
         self.last_frame = config.importer.frame

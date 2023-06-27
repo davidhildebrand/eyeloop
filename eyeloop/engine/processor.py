@@ -33,7 +33,7 @@ class Shape():
         self.type_entry = None
         self.track = lambda x:None
 
-        self.convex_hull = False
+        self.new_algorithm = False
 
         self.blinking = 0
 
@@ -87,7 +87,7 @@ class Shape():
         self.source[:] = cv2.threshold(cv2.GaussianBlur(cv2.erode(self.source, kernel, iterations = 1), blur_tuple, 0), config.engine.subject_parameters["p_binarythreshold"], 255, cv2.THRESH_BINARY_INV)[1]
 
         contour,hier = cv2.findContours(self.source,cv2.RETR_CCOMP,cv2.CHAIN_APPROX_SIMPLE)
-        if self.convex_hull == True: # If using the new algorithm, new center is calculated and convex hull is used
+        if self.new_algorithm == True: # If using the new algorithm, new center is calculated and convex hull is used
             if len(contour) > 0:
             
                 contour = max(contour, key = cv2.contourArea)
