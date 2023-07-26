@@ -11,6 +11,8 @@ import PySpin
 import tkinter as tk
 import nidaqmx
 from copy import deepcopy
+import shutil
+import time
 
 class Importer(IMPORTER):
 
@@ -65,14 +67,19 @@ class Importer(IMPORTER):
                 save_path = str(config.arguments.output_dir)
                 datestr = datetime.utcnow().strftime('%Y%m%dd')
                 timestr = datetime.utcnow().strftime('%H%M%StUTC')
+                
                 animal_name = config.engine.subject_parameters["Name"].split("_")[0]
                 face_or_eye = config.engine.subject_parameters["Name"].split("_")[1]
-                logfile_name = timestr + '_Eyeloop_' + face_or_eye + '.json'
-                logfile_path = save_path + os.path.sep + animal_name + os.path.sep + \
-                    datestr + os.path.sep + timestr + '_Eyeloop_' + face_or_eye + os.path.sep + logfile_name
-                self.outputimages_path = os.path.dirname(logfile_path) + os.path.sep + 'Frames' + os.path.sep
+                self.experiment_dir = save_path + os.path.sep + animal_name + os.path.sep + \
+                    datestr + os.path.sep + timestr + '_EyeLoop_' + face_or_eye 
+
+                logfile_name = timestr + '_EyeLoop_' + face_or_eye + '.json'
+                logfile_path = self.experiment_dir + os.path.sep + logfile_name
+                self.outputimages_path = self.experiment_dir + os.path.sep + 'Frames' + os.path.sep
                 if not os.path.exists(self.outputimages_path):
                     os.makedirs(self.outputimages_path)
+
+                self.experiment_start_time = time.time()
 
                 self.file = open(logfile_path, "a")
                 self.file.write(json.dumps('Parameters: ') + "\n")
@@ -81,9 +88,11 @@ class Importer(IMPORTER):
                     
 
             if config.engine.continue_experiment and config.engine.save_images:
-                data_for_json = config.engine.extractors[1].core.dataout
-                data_for_json["pupil"] = data_for_json["pupil"][0]
-                self.file.write(json.dumps(config.engine.extractors[1].core.dataout) + "\n")
+                if 'Eye' in config.engine.subject_parameters["Name"].split("_")[1] or 'eye' in config.engine.subject_parameters["Name"].split("_")[1]:
+                    data_for_json = config.engine.extractors[1].core.dataout
+                    data_for_json["pupil"] = data_for_json["pupil"][0]
+                    self.file.write(json.dumps(config.engine.extractors[1].core.dataout) + "\n")
+
                 image_for_saving = deepcopy(image)
                 if config.engine.start_mode == 'scope_trigger':
                     self.scopeframe_to_be_encoded = self.frame_counter_scope - self.frame_counter_scope_at_start_experiment
@@ -100,9 +109,11 @@ class Importer(IMPORTER):
 
                 # self.save(self.outputimages_path,image_for_saving)
                 if config.engine.start_mode == 'scope_trigger':
-                    img_pth = self.outputimages_path + config.arguments.img_format.replace("$", str(self.frame) + '_scopeframe_' + str(self.scopeframe_to_be_encoded), 1)
+                    #img_pth = self.outputimages_path + config.arguments.img_format.replace("$", str(self.frame) + '_scopeframe_' + str(self.scopeframe_to_be_encoded), 1)
+                    img_pth = self.outputimages_path + config.arguments.img_format.replace("$", '{0:09d}'.format(self.frame) + '_scopeframe_' + '{0:06d}'.format(self.scopeframe_to_be_encoded), 1)
                 else:
-                    img_pth = self.outputimages_path + config.arguments.img_format.replace("$", str(self.frame), 1)
+                    #img_pth = self.outputimages_path + config.arguments.img_format.replace("$", str(self.frame), 1)
+                    img_pth = self.outputimages_path + config.arguments.img_format.replace("$", '{0:09d}'.format(self.frame), 1)
                 cv2.imwrite(img_pth, image_for_saving)
 
                     # try:
@@ -117,6 +128,16 @@ class Importer(IMPORTER):
                 self.file.close()
                 if config.engine.start_mode == 'scope_trigger':
                     self.frame_counter_scope_at_start_experiment = self.frame_counter_scope
+
+                experiment_duration = time.time() - self.experiment_start_time
+                if experiment_duration < 300:
+                    os.rename(self.experiment_dir,self.experiment_dir + '_less5min')
+
+                # outputcode_path = os.path.dirname(logfile_path) + os.path.sep + 'Code' + os.path.sep
+                # if not os.path.exists(outputcode_path):
+                #     os.makedirs(outputcode_path)
+                # for file in glob.glob(os.environ['CONDA_PREFIX'] + os.path.sep + 'Lib' + os.path.sep + 'site-packages' + os.path.sep + 'eyeloop' + os.path.sep + '**' + os.path.sep + '*.py', recursive=True):
+                #     shutil.copy(file, outputcode_path + file.replace(os.path.sep,'_'))
             
 
                 
