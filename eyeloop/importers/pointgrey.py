@@ -87,39 +87,52 @@ class Importer(IMPORTER):
                 self.file.write(json.dumps('Experiment started') + "\n")
                     
 
-            if config.engine.continue_experiment and config.engine.save_images:
+            if config.engine.continue_experiment:
                 if 'Eye' in config.engine.subject_parameters["Name"].split("_")[1] or 'eye' in config.engine.subject_parameters["Name"].split("_")[1]:
                     data_for_json = config.engine.extractors[1].core.dataout
-                    data_for_json["pupil"] = data_for_json["pupil"][0]
-                    self.file.write(json.dumps(config.engine.extractors[1].core.dataout) + "\n")
 
-                image_for_saving = deepcopy(image)
-                if config.engine.start_mode == 'scope_trigger':
-                    self.scopeframe_to_be_encoded = self.frame_counter_scope - self.frame_counter_scope_at_start_experiment
-                    quotient_256x256, remainder_256x256 = divmod(self.scopeframe_to_be_encoded, 65536)
-                    quotient_256, remainder_256 = divmod(remainder_256x256, 256)
-                    
-                    # You can recover the frame counter with this:
-                    #calculated_frame_scope = 256 * 256 * quotient_256x256 + 256 * quotient_256 + remainder_256
+                    # Transform tuples into list so we can edit them
+                    data_for_json["pupil"] = list(data_for_json["pupil"])
+                    data_for_json["pupil"][0] = list(data_for_json["pupil"][0])
 
-                    # Using a 3x3 pix array in the top left for simplicity and peace of mind...
-                    image_for_saving[:3,:3] = remainder_256
-                    image_for_saving[:2,:2] = quotient_256
-                    image_for_saving[:1,:1] = quotient_256x256
+                    # Get only the necessary parts and round them
+                    data_for_json["pupil"] = data_for_json["pupil"][:2]
+                    data_for_json["pupil"][0][0] = np.round(data_for_json["pupil"][0][0], 2)
+                    data_for_json["pupil"][0][1] = np.round(data_for_json["pupil"][0][1], 2)
+                    data_for_json["pupil"][1] = np.round(data_for_json["pupil"][1], 2)
 
-                # self.save(self.outputimages_path,image_for_saving)
-                if config.engine.start_mode == 'scope_trigger':
-                    #img_pth = self.outputimages_path + config.arguments.img_format.replace("$", str(self.frame) + '_scopeframe_' + str(self.scopeframe_to_be_encoded), 1)
-                    img_pth = self.outputimages_path + config.arguments.img_format.replace("$", '{0:09d}'.format(self.frame) + '_scopeframe_' + '{0:06d}'.format(self.scopeframe_to_be_encoded), 1)
-                else:
-                    #img_pth = self.outputimages_path + config.arguments.img_format.replace("$", str(self.frame), 1)
-                    img_pth = self.outputimages_path + config.arguments.img_format.replace("$", '{0:09d}'.format(self.frame), 1)
-                cv2.imwrite(img_pth, image_for_saving)
+                    if config.engine.start_mode == 'scope_trigger':
+                        self.scopeframe_to_be_saved = self.frame_counter_scope - self.frame_counter_scope_at_start_experiment
+                        data_for_json["scope_frame"] = self.scopeframe_to_be_saved
+                    self.file.write(json.dumps(data_for_json) + "\n")
 
-                    # try:
-                    #     self.file.write(json.dumps(core.dataout) + "\n")
-                    # except ValueError:
-                    #     pass
+                if config.engine.save_images:
+                    image_for_saving = deepcopy(image)
+                    if config.engine.start_mode == 'scope_trigger':
+                        self.scopeframe_to_be_saved = self.frame_counter_scope - self.frame_counter_scope_at_start_experiment
+                        quotient_256x256, remainder_256x256 = divmod(self.scopeframe_to_be_saved, 65536)
+                        quotient_256, remainder_256 = divmod(remainder_256x256, 256)
+                        
+                        # You can recover the frame counter with this:
+                        #calculated_frame_scope = 256 * 256 * quotient_256x256 + 256 * quotient_256 + remainder_256
+
+                        # Using a 3x3 pix array in the top left for simplicity and peace of mind...
+                        image_for_saving[:3,:3] = remainder_256
+                        image_for_saving[:2,:2] = quotient_256
+                        image_for_saving[:1,:1] = quotient_256x256
+
+                    # self.save(self.outputimages_path,image_for_saving)
+                        #img_pth = self.outputimages_path + config.arguments.img_format.replace("$", str(self.frame) + '_scopeframe_' + str(self.scopeframe_to_be_saved), 1)
+                        img_pth = self.outputimages_path + config.arguments.img_format.replace("$", '{0:09d}'.format(self.frame) + '_scopeframe_' + '{0:06d}'.format(self.scopeframe_to_be_saved), 1)
+                    else:
+                        #img_pth = self.outputimages_path + config.arguments.img_format.replace("$", str(self.frame), 1)
+                        img_pth = self.outputimages_path + config.arguments.img_format.replace("$", '{0:09d}'.format(self.frame), 1)
+                    cv2.imwrite(img_pth, image_for_saving)
+
+                        # try:
+                        #     self.file.write(json.dumps(core.dataout) + "\n")
+                        # except ValueError:
+                        #     pass
 
             if config.engine.stop_experiment:
                 print('Ending experiment')
@@ -138,8 +151,6 @@ class Importer(IMPORTER):
                 #     os.makedirs(outputcode_path)
                 # for file in glob.glob(os.environ['CONDA_PREFIX'] + os.path.sep + 'Lib' + os.path.sep + 'site-packages' + os.path.sep + 'eyeloop' + os.path.sep + '**' + os.path.sep + '*.py', recursive=True):
                 #     shutil.copy(file, outputcode_path + file.replace(os.path.sep,'_'))
-            
-
                 
     def activate(self) -> None:
         self.tracking_started = True
