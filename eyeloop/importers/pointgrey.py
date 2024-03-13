@@ -3,6 +3,7 @@ from datetime import datetime
 import eyeloop.config as config
 from eyeloop.importers.importer import IMPORTER
 import glob
+import h5py
 import json
 import numpy as np
 import os
@@ -75,10 +76,15 @@ class Importer(IMPORTER):
 
                 logfile_name = timestr + '_EyeLoop_' + face_or_eye + '.json'
                 logfile_path = self.experiment_dir + os.path.sep + logfile_name
-                self.outputimages_path = self.experiment_dir + os.path.sep + 'Frames' + os.path.sep
+
+                self.outputimages_path = self.experiment_dir + os.path.sep #+ 'Frames' + os.path.sep
                 if not os.path.exists(self.outputimages_path):
                     os.makedirs(self.outputimages_path)
 
+                hdf5_path = self.experiment_dir + os.path.sep + 'frames_' + animal_name + '_' + datestr + '_' + timestr + '.hdf5'
+                h5File = h5py.File(hdf5_path,'w')
+                h5_frames = h5File.create_dataset('frames', data=image[None, ...], maxshape=(None, image.shape[0], image.shape[1]), compression='gzip')
+                    
                 self.experiment_start_time = time.time()
 
                 self.file = open(logfile_path, "a")
@@ -97,9 +103,9 @@ class Importer(IMPORTER):
 
                     # Get only the necessary parts and round them
                     data_for_json["pupil"] = data_for_json["pupil"][:2]
-                    data_for_json["pupil"][0][0] = np.round(data_for_json["pupil"][0][0], 2)
-                    data_for_json["pupil"][0][1] = np.round(data_for_json["pupil"][0][1], 2)
-                    data_for_json["pupil"][1] = np.round(data_for_json["pupil"][1], 2)
+                    # data_for_json["pupil"][0][0] = np.round(data_for_json["pupil"][0][0], 2)
+                    # data_for_json["pupil"][0][1] = np.round(data_for_json["pupil"][0][1], 2)
+                    # data_for_json["pupil"][1] = np.round(data_for_json["pupil"][1], 2)
 
                     if config.engine.start_mode == 'scope_trigger':
                         self.scopeframe_to_be_saved = self.frame_counter_scope - self.frame_counter_scope_at_start_experiment
@@ -122,12 +128,16 @@ class Importer(IMPORTER):
                         image_for_saving[:1,:1] = quotient_256x256
 
                     # self.save(self.outputimages_path,image_for_saving)
-                        #img_pth = self.outputimages_path + config.arguments.img_format.replace("$", str(self.frame) + '_scopeframe_' + str(self.scopeframe_to_be_saved), 1)
-                        img_pth = self.outputimages_path + config.arguments.img_format.replace("$", '{0:09d}'.format(self.frame) + '_scopeframe_' + '{0:06d}'.format(self.scopeframe_to_be_saved), 1)
-                    else:
-                        #img_pth = self.outputimages_path + config.arguments.img_format.replace("$", str(self.frame), 1)
-                        img_pth = self.outputimages_path + config.arguments.img_format.replace("$", '{0:09d}'.format(self.frame), 1)
-                    cv2.imwrite(img_pth, image_for_saving)
+                    # #     img_pth = self.outputimages_path + config.arguments.img_format.replace("$", str(self.frame) + '_scopeframe_' + str(self.scopeframe_to_be_saved), 1)
+                    #     img_pth = self.outputimages_path + config.arguments.img_format.replace("$", '{0:09d}'.format(self.frame) + '_scopeframe_' + '{0:06d}'.format(self.scopeframe_to_be_saved), 1)
+                    # else:
+                    # #     img_pth = self.outputimages_path + config.arguments.img_format.replace("$", str(self.frame), 1)
+                    #     img_pth = self.outputimages_path + config.arguments.img_format.replace("$", '{0:09d}'.format(self.frame), 1)
+                    # cv2.imwrite(img_pth, image_for_saving)
+
+                    # Since we cannot initialize the hdf5 because we don't know how long the movie is going to be, we will add one extra frame every time
+                    h5_frames.resize(h5_frames.len() + 1, axis=0)
+                    h5_frames[h5_frames.len() - 1] = image_for_saving
 
                         # try:
                         #     self.file.write(json.dumps(core.dataout) + "\n")
@@ -139,6 +149,7 @@ class Importer(IMPORTER):
                 config.engine.stop_experiment = False
                 config.engine.continue_experiment = False
                 self.file.close()
+                h5File.close()
                 if config.engine.start_mode == 'scope_trigger':
                     self.frame_counter_scope_at_start_experiment = self.frame_counter_scope
 
